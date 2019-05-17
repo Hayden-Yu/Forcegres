@@ -1,6 +1,6 @@
 import { database, SCHEMA } from '../../config/database';
-import { DescribeGlobalSObjectResult } from 'jsforce';
-import { readFileSync, writeFileSync } from 'fs';
+import { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '../../config/logger';
 
@@ -51,12 +51,15 @@ export class PostgresSchemaService {
               keyprefix = ${el.keyPrefix === null ? null : `'${el.keyPrefix}'`};
         `.replace(/\s+/g, ' ');
       }, '');
-      writeFileSync('log', query);
       await client.query(query).catch(logger.error.bind(logger));
       return await client.release();
     } catch (error) {
       client.release();
       throw error;
     }
+  }
+
+  public static createSobjectTable(schema: DescribeSObjectResult) {
+    
   }
 }
