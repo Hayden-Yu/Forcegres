@@ -67,8 +67,8 @@ export class ForceDataService {
           logger.error(err.message);
           return reject(err);
         }
-        logger.debug(`found ${(<any>res.deletedRecords).length} deletes`); // bug from type definition
-        return resolve((<any>res.deletedRecords).map((el: any) => el.id));
+        logger.debug(`found ${res.deletedRecords.length} deletes`);
+        return resolve(res.deletedRecords.map(el => el.id));
       });
     });
   }
