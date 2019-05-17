@@ -1,8 +1,9 @@
 import { force as sf } from '../../config/force';
 import { logger } from '../../config/logger';
+import { DescribeGlobalSObjectResult } from 'jsforce';
 
 export class ForceSchemaService {
-  public static listObjects() {
+  public static listObjects(): Promise<DescribeGlobalSObjectResult[]> {
     return new Promise((resolve, reject) => {
       sf.describeGlobal((err, res) => {
         logger.debug('retrieving sf global schema');

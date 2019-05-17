@@ -11,3 +11,5 @@ database.on('error', (err, client) => {
 database.on('acquire', (client) => {
   logger.silly(`pg connection used by ${client}`);
 });
+
+export const SCHEMA = 'force';
