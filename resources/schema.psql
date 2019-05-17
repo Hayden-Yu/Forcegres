@@ -1,8 +1,8 @@
-CREATE SCHEMA IF NOT EXISTS force;
-CREATE TABLE IF NOT EXISTS force.internal_sobjects (
-  objectName VARCHAR(50),
-  label VARCHAR(50),
-  labelPlural VARCHAR(50),
+CREATE SCHEMA IF NOT EXISTS __SCHEMA__;
+CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_sobjects (
+  objectName TEXT,
+  label TEXT,
+  labelPlural TEXT,
   layoutable BOOLEAN,
   mergeable BOOLEAN,
   mruEnabled BOOLEAN,
@@ -22,23 +22,23 @@ CREATE TABLE IF NOT EXISTS force.internal_sobjects (
   feedEnabled BOOLEAN,
   hasSubtypes BOOLEAN,
   isSubtype BOOLEAN,
-  keyPrefix VARCHAR(50),
+  keyPrefix TEXT,
   enableSync BOOLEAN,
   PRIMARY KEY (objectName)
 );
 
-CREATE TABLE IF NOT EXISTS force.internal_syncHistory (
+CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_syncHistory (
   id SERIAL,
-  objectName VARCHAR(50) REFERENCES sobjects(objectName),
+  objectName TEXT REFERENCES __SCHEMA__.internal_sobjects(objectName),
   ts TIMESTAMP,
   PRIMARY KEY (id)
 );
 
-CREATE TABLE IF NOT EXISTS force.internal_fieldIndex (
-  objectName VARCHAR(50) REFERENCES sobjects(objectName),
+CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_fieldIndex (
+  objectName TEXT REFERENCES __SCHEMA__.internal_sobjects(objectName),
   fieldName TEXT [],
-  indexMethod VARCHAR(10) DEFAULT 'btree',
+  indexMethod TEXT DEFAULT 'btree',
   ascend BOOLEAN DEFAULT true,
-  nullFirst BOOLEAN DEFAULT true
+  nullFirst BOOLEAN DEFAULT true,
   PRIMARY KEY (objectName, fieldName)
 );
