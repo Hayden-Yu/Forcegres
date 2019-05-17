@@ -1,0 +1,44 @@
+CREATE SCHEMA IF NOT EXISTS force;
+CREATE TABLE IF NOT EXISTS force.internal_sobjects (
+  objectName VARCHAR(50),
+  label VARCHAR(50),
+  labelPlural VARCHAR(50),
+  layoutable BOOLEAN,
+  mergeable BOOLEAN,
+  mruEnabled BOOLEAN,
+  queryable BOOLEAN,
+  replicateable BOOLEAN,
+  retrieveable BOOLEAN,
+  searchable BOOLEAN,
+  triggerable BOOLEAN,
+  undeletable BOOLEAN,
+  updateable BOOLEAN,
+  activateable BOOLEAN,
+  createable BOOLEAN,
+  custom BOOLEAN,
+  customSetting BOOLEAN,
+  deletable BOOLEAN,
+  deprecatedAndHidden BOOLEAN,
+  feedEnabled BOOLEAN,
+  hasSubtypes BOOLEAN,
+  isSubtype BOOLEAN,
+  keyPrefix VARCHAR(50),
+  enableSync BOOLEAN,
+  PRIMARY KEY (objectName)
+);
+
+CREATE TABLE IF NOT EXISTS force.internal_syncHistory (
+  id SERIAL,
+  objectName VARCHAR(50) REFERENCES sobjects(objectName),
+  ts TIMESTAMP,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS force.internal_fieldIndex (
+  objectName VARCHAR(50) REFERENCES sobjects(objectName),
+  fieldName TEXT [],
+  indexMethod VARCHAR(10) DEFAULT 'btree',
+  ascend BOOLEAN DEFAULT true,
+  nullFirst BOOLEAN DEFAULT true
+  PRIMARY KEY (objectName, fieldName)
+);
