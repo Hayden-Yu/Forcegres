@@ -1,5 +1,5 @@
 import { database, SCHEMA } from '../../config/database';
-import { DescribeGlobalSObjectResult, DescribeSObjectResult } from 'jsforce';
+import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsforce';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '../../config/logger';
@@ -52,7 +52,7 @@ export class PostgresSchemaService {
         `.replace(/\s+/g, ' ');
       }, '');
       await client.query(query).catch(logger.error.bind(logger));
-      return await client.release();
+      return client.release();
     } catch (error) {
       client.release();
       throw error;
@@ -66,13 +66,39 @@ export class PostgresSchemaService {
       return database.query(`CREATE TABLE IF NOT ESISTS ${SCHEMA}.${schema.name} 
       (${fieldList.join(',')},PRIMARY KEY (Id));`);
   }
-    
+
+  public static loadData(records: any[], schema: DescribeSObjectResult) {
+      if (!records || !records.length) {
+        return Promise.resolve();
+      }
+      const insert = `INSERT INTO ${SCHEMA}.${schema.name} (${schema.fields.map(f => f.name).join(',')}) VALUES `;
+      const query = records.reduce((sql, record) => sql + `${insert} (${schema.fields.map(field => getRecordSqlValue(record, field)).join(',')})
+        ON CONFLICT(Id) DO 
+        UPDATE SET ${schema.fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
+      return database.query(query);
   }
 }
 
+function getRecordSqlValue(record: any, field: Field) {
+  const value = record[field.name];
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (field.soapType === 'tns:ID') {
+    return `'${value.substring(0, 15)}'`;
+  }
+  const sqlType = soapToPostgresTypeMapping.get(field.soapType) || 'TEXT';
+  if (sqlType === 'TEXT' 
+    || sqlType === 'DATE' 
+    || sqlType === 'DATETIME'
+    || sqlType.indexOf('CHAR') !== -1) {
+      return `'${value}'`
+  }
+  return value;
+}
 
 const soapToPostgresTypeMapping = new Map([
-  ['tns:ID', 'VARCHAR(18)'],
+  ['tns:ID', 'TEXT'],
   ['xsd:anyType', 'TEXT'],
   ['xsd:base64Binary', 'TEXT'], // provided as url path in soql
   ['xsd:boolean', 'BOOLEAN'],
