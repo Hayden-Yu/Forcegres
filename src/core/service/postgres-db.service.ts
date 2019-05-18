@@ -4,10 +4,11 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '../../config/logger';
 
-export class PostgresSchemaService {
+export class PostgresDBService {
   public static initializeSchema() {
-    const schema = readFileSync(resolve(__dirname, '../../../resources/schema.psql'), 'utf-8').replace(/\s+/g, ' ').replace(/__SCHEMA__/g, SCHEMA);
-    return database.query(schema);
+    const schema = readFileSync(resolve(__dirname, '../../../resources/schema.psql'), 'utf-8').replace(/__SCHEMA__/g, SCHEMA);
+    const data = readFileSync(resolve(__dirname, '../../../resources/data.psql'), 'utf-8').replace(/__SCHEMA__/g, SCHEMA);
+    return database.query(schema+data);
   }
 
   public static async loadSobjects(schema: DescribeGlobalSObjectResult[]) {

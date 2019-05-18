@@ -17,7 +17,7 @@ export class ForceSchemaService {
     });
   }
 
-  public describeObject(objectName: string): Promise<DescribeSObjectResult> {
+  public static describeObject(objectName: string): Promise<DescribeSObjectResult> {
     return new Promise((resolve, reject) => {
       sf.describe(objectName, (err, meta) => {
         logger.debug(`describing ${objectName} sf object`);
@@ -28,5 +28,9 @@ export class ForceSchemaService {
         return resolve(meta);
       });
     });
+  }
+
+  public static generateSelectStar(schema: DescribeSObjectResult) {
+    return `SELECT ${schema.fields.map(f=>f.name).join(',')} FROM ${schema.name}`;
   }
 }

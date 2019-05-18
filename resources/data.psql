@@ -1,0 +1,5 @@
+-- use this script to define indexes and/or sobjects to sync
+INSERT INTO __SCHEMA__.internal_sobjects (objectName,enableSync) VALUES
+('Account', true),
+('Opportunity', true)
+ON CONFLICT (objectName) DO UPDATE SET enableSync=true;
