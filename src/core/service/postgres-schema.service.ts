@@ -60,6 +60,34 @@ export class PostgresSchemaService {
   }
 
   public static createSobjectTable(schema: DescribeSObjectResult) {
+    const fieldList: string[] = [];
+    schema.fields.forEach(field => 
+      fieldList.push(`${field.name} ${soapToPostgresTypeMapping.get(field.soapType)}`));
+      return database.query(`CREATE TABLE IF NOT ESISTS ${SCHEMA}.${schema.name} 
+      (${fieldList.join(',')},PRIMARY KEY (Id));`);
+  }
     
   }
 }
+
+
+const soapToPostgresTypeMapping = new Map([
+  ['tns:ID', 'VARCHAR(18)'],
+  ['xsd:anyType', 'TEXT'],
+  ['xsd:base64Binary', 'TEXT'], // provided as url path in soql
+  ['xsd:boolean', 'BOOLEAN'],
+  ['xsd:date', 'DATE'],
+  ['xsd:dateTime', 'DATETIME'],
+  ['xsd:double', 'FLOAT'],
+  ['xsd:int', 'INTEGER'],
+  ['xsd:string', 'TEXT'],
+  // the following are not found in official documentation, but still occur when describing an sobject
+  ['xsd:time', 'TIME'],
+  ['urn:address', 'TEXT'],
+  ['urn:JunctionIdListNames', 'TEXT'],
+  ['urn:location', 'TEXT'],
+  ['urn:RecordTypesSupported', 'TEXT'],
+  ['urn:RelationshipReferenceTo', 'TEXT'],
+  ['urn:SearchLayoutButtonsDisplayed', 'TEXT'],
+  ['urn:SearchLayoutFieldsDisplayed', 'TEXT'],
+])

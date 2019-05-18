@@ -1,7 +1,7 @@
-import { PostgresSchemaService } from "./service/postgres-schema.service";
-import { ForceSchemaService } from "./service/force-schema.service";
+import { PostgresSchemaService } from "./core/service/postgres-schema.service";
+import { ForceSchemaService } from "./core/service/force-schema.service";
 import { DescribeGlobalSObjectResult } from "jsforce";
-import { logger } from "../config/logger";
+import { logger } from "./config/logger";
 
 export async function initializeDB() {
   return await PostgresSchemaService
