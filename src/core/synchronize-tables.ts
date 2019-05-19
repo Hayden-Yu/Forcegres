@@ -42,16 +42,17 @@ async function synchronizeTable(name: string) {
     await synchronizeTableWithPagination(await ForceDataService.query(soql), schema, []);
   } else {
     let recentUpdates = await ForceDataService.getRecentUpdates(name, syncHistory.rows[0]['ts'], currentTime);
+    logger.info(`found ${recentUpdates.length} recent updates on ${name}`);
     const processes: Promise<any>[] = [];
     while(recentUpdates.length) {
+      const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
       processes.push(synchronizeTableWithPagination(
-        await ForceDataService.query(
-          `${soql} WHERE Id IN (${recentUpdates.slice(0,SOQL_WHERE_IN_SIZE).map(id=>`'${id}'`).join(',')})`
-        ), schema, []));
+        await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id}'`).join(',')})`), schema, []));
+      logger.info(`synchronized ${chunk.length} updated ${name} records`);
       recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
     }
-
-    let recentDeletes = await ForceDataService.getRecentDeletes(name, syncHistory.rows[0][1], currentTime);
+    let recentDeletes = await ForceDataService.getRecentDeletes(name, syncHistory.rows[0]['ts'], currentTime);
+    logger.info(`found ${recentUpdates.length} recent deletes on ${name}`);
     if (recentDeletes.length) {
       processes.push(massDeleteRecords(name, recentDeletes));
     }
