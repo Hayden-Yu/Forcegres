@@ -7,14 +7,16 @@ import { logger } from "../config/logger";
 
 const SOQL_WHERE_IN_SIZE = 600;
 
-function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult, processes: Promise<any>[]) {
+function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult): Promise<any> {
+  const processes = [];
   if (queryResult.nextRecordsUrl) {
     logger.info(`soql pagination retriving next page of ${schema.name}`)
-    processes.push(ForceDataService.queryNext(queryResult)
-      .then(res => synchronizeTableWithPagination(res, schema, processes)));
+    processes.push(
+      ForceDataService.queryNext(queryResult).then(res => synchronizeTableWithPagination(res, schema)))
   }
-  logger.info(`loading sobject [${schema.name}] ${queryResult.records.length} records into db `);
-  PostgresDBService.loadData(queryResult.records, schema);
+  processes.push(
+    PostgresDBService.loadData(queryResult.records, schema)
+      .then(()=>logger.info(`loading sobject [${schema.name}] ${queryResult.records.length} records into db`)));
   return Promise.all(processes);
 }
 
@@ -36,18 +38,22 @@ async function synchronizeTable(name: string) {
   const currentTime = (new Date()).toISOString();
   const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC;`);
   const soql = ForceSchemaService.generateSelectStar(schema);
+  const processes: Promise<any>[] = [
+    database.query(`INSERT INTO ${SCHEMA}.internal_syncHistory (objectName, ts) VALUES ('${name}','${currentTime}');`),
+  ];
   if (!syncHistory.rows.length) {
     logger.info(`initialize postgres table ${name}`);
     PostgresDBService.createSobjectTable(schema);
-    await synchronizeTableWithPagination(await ForceDataService.query(soql), schema, []);
+    processes.push(synchronizeTableWithPagination(await ForceDataService.query(soql), schema));
   } else {
     let recentUpdates = await ForceDataService.getRecentUpdates(name, syncHistory.rows[0]['ts'], currentTime);
     logger.info(`found ${recentUpdates.length} recent updates on ${name}`);
-    const processes: Promise<any>[] = [];
     while(recentUpdates.length) {
       const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
-      processes.push(synchronizeTableWithPagination(
-        await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id}'`).join(',')})`), schema, []));
+      processes.push(
+        synchronizeTableWithPagination(
+          await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id}'`).join(',')})`),
+          schema));
       logger.info(`synchronized ${chunk.length} updated ${name} records`);
       recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
     }
@@ -58,7 +64,6 @@ async function synchronizeTable(name: string) {
     }
     await Promise.all(processes);
   }
-  await database.query(`INSERT INTO ${SCHEMA}.internal_syncHistory (objectName, ts) VALUES ('${name}','${currentTime}');`);
 }
 
 export function synchronizeTables(): Promise<any> {
