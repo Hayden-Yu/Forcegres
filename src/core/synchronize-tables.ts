@@ -57,7 +57,7 @@ async function synchronizeTable(name: string) {
     }
     await Promise.all(processes);
   }
-  await database.query(`INSERT INTO ${schema}.internal_syncHistory (objectName, ts) VALUES ('${name}','${currentTime}');`);
+  await database.query(`INSERT INTO ${SCHEMA}.internal_syncHistory (objectName, ts) VALUES ('${name}','${currentTime}');`);
 }
 
 export function synchronizeTables(): Promise<any> {
