@@ -3,7 +3,7 @@ import { ForceSchemaService } from "./core/service/force-schema.service";
 import { DescribeGlobalSObjectResult } from "jsforce";
 import { logger } from "./config/logger";
 
-export async function initializeDB() {
+export async function init() {
   return await PostgresDBService
   .initializeSchema()
   .then(() => ForceSchemaService.listObjects())

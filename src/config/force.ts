@@ -2,7 +2,16 @@ import { Connection } from 'jsforce';
 import { environments } from '../environments/environments';
 import { logger } from './logger';
 
-export const force = new Connection({
+type limitInfo = {
+  limitInfo: {
+    apiUsage: {
+      limit: number,
+      used: number
+    }
+  }
+}
+
+export const force = <Connection & limitInfo> new Connection({
   clientId: environments.force.clientId,
   clientSecret: environments.force.clientSecret,
   loginUrl: environments.force.url,

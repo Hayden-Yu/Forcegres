@@ -1,12 +1,13 @@
 import { transports, createLogger } from 'winston';
+import { environments } from '../environments/environments';
 
 const config = {
-  level: process.env.LOG_LEVEL || 'info',
-  transports: new Array<any>(),
+  level: (environments.logger && environments.logger.logLevel) ? environments.logger.logLevel: 'info',
+  transports: [] as any[],
 };
 
-if (process.env.LOG_FILE) {
-  config.transports.push(new transports.File({ filename: process.env.LOG_LEVEL }));
+if (environments.logger && environments.logger.fileName) {
+  config.transports.push(new transports.File({filename: environments.logger.fileName}));
 } else {
   config.transports.push(new transports.Console());
 }
