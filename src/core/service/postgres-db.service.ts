@@ -64,7 +64,7 @@ export class PostgresDBService {
     const fieldList: string[] = [];
     schema.fields.forEach(field => 
       fieldList.push(`${field.name} ${soapToPostgresTypeMapping.get(field.soapType)}`));
-      return database.query(`CREATE TABLE IF NOT ESISTS ${SCHEMA}.${schema.name} 
+      return database.query(`CREATE TABLE IF NOT EXISTS ${SCHEMA}.${schema.name} 
       (${fieldList.join(',')},PRIMARY KEY (Id));`);
   }
 
@@ -76,14 +76,14 @@ export class PostgresDBService {
       const query = records.reduce((sql, record) => sql + `${insert} (${schema.fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
         UPDATE SET ${schema.fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
-      return database.query(query);
+        return database.query(query);
   }
 }
 
 function getRecordSqlValue(record: any, field: Field) {
   const value = record[field.name];
   if (value === undefined || value === null) {
-    return null;
+    return 'null';
   }
   if (field.soapType === 'tns:ID') {
     return `'${value.substring(0, 15)}'`;
@@ -91,9 +91,9 @@ function getRecordSqlValue(record: any, field: Field) {
   const sqlType = soapToPostgresTypeMapping.get(field.soapType) || 'TEXT';
   if (sqlType === 'TEXT' 
     || sqlType === 'DATE' 
-    || sqlType === 'DATETIME'
+    || sqlType === 'TIMESTAMP'
     || sqlType.indexOf('CHAR') !== -1) {
-      return `'${value}'`
+      return `'${`${value}`.replace(/'/g, '\'\'')}'`
   }
   return value;
 }
@@ -104,7 +104,7 @@ const soapToPostgresTypeMapping = new Map([
   ['xsd:base64Binary', 'TEXT'], // provided as url path in soql
   ['xsd:boolean', 'BOOLEAN'],
   ['xsd:date', 'DATE'],
-  ['xsd:dateTime', 'DATETIME'],
+  ['xsd:dateTime', 'TIMESTAMP'],
   ['xsd:double', 'FLOAT'],
   ['xsd:int', 'INTEGER'],
   ['xsd:string', 'TEXT'],
