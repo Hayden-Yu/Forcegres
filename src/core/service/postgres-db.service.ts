@@ -81,7 +81,7 @@ export class PostgresDBService {
 }
 
 function getRecordSqlValue(record: any, field: Field) {
-  const value = record[field.name];
+  let value = record[field.name];
   if (value === undefined || value === null) {
     return 'null';
   }
@@ -93,6 +93,10 @@ function getRecordSqlValue(record: any, field: Field) {
     || sqlType === 'DATE' 
     || sqlType === 'TIMESTAMP'
     || sqlType.indexOf('CHAR') !== -1) {
+      if (typeof value === 'object') { 
+        // some fields returns JSON but decribe as string e.g. Account.ShippingAddress
+        value = JSON.stringify(value);
+      }
       return `'${`${value}`.replace(/'/g, '\'\'')}'`
   }
   return value;
