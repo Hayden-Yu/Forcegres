@@ -1,3 +1,4 @@
+import moment from 'moment-timezone';
 import { database, SCHEMA } from "../config/database";
 import { PostgresDBService } from "./service/postgres-db.service";
 import { ForceSchemaService } from "./service/force-schema.service";
@@ -46,7 +47,8 @@ async function synchronizeTable(name: string) {
     PostgresDBService.createSobjectTable(schema);
     processes.push(synchronizeTableWithPagination(await ForceDataService.query(soql), schema));
   } else {
-    let recentUpdates = await ForceDataService.getRecentUpdates(name, syncHistory.rows[0]['ts'], currentTime);
+    const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC').toISOString();
+    let recentUpdates = await ForceDataService.getRecentUpdates(name, lastSync, currentTime);
     logger.info(`found ${recentUpdates.length} recent updates on ${name}`);
     while(recentUpdates.length) {
       const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
@@ -57,7 +59,7 @@ async function synchronizeTable(name: string) {
       logger.info(`synchronized ${chunk.length} updated ${name} records`);
       recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
     }
-    let recentDeletes = await ForceDataService.getRecentDeletes(name, syncHistory.rows[0]['ts'], currentTime);
+    let recentDeletes = await ForceDataService.getRecentDeletes(name, lastSync, currentTime);
     logger.info(`found ${recentUpdates.length} recent deletes on ${name}`);
     if (recentDeletes.length) {
       processes.push(massDeleteRecords(name, recentDeletes));
