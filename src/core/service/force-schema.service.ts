@@ -17,16 +17,16 @@ export class ForceSchemaService {
     });
   }
 
-  public static describeObject(objectName: string): Promise<DescribeSObjectResult> {
+  public static describeObject(objectName: string, timestamp?: string): Promise<DescribeSObjectResult> {
     return new Promise((resolve, reject) => {
       sf.describe(objectName, (err, meta) => {
-        logger.debug(`describing ${objectName} sf object`);
+        logger.debug(`describing ${objectName} sf object${timestamp ? ` if modified after ${timestamp}` : ''}`);
         if (err) {
           logger.error(err.message);
           return reject(err);
         }
         return resolve(meta);
-      });
+      }, timestamp);
     });
   }
 
