@@ -79,7 +79,10 @@ export class PostgresDBService {
       const query = records.reduce((sql, record) => sql + `${insert} (${schema.fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
         UPDATE SET ${schema.fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
-        return database.query(query);
+        return database.query(query).catch((err: any) => {
+          logger.debug(query);
+          logger.error(err);
+        });
   }
 }
 
