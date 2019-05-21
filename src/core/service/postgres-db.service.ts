@@ -52,7 +52,10 @@ export class PostgresDBService {
               keyprefix = ${el.keyPrefix === null ? null : `'${el.keyPrefix}'`};
         `.replace(/\s+/g, ' ');
       }, '');
-      await client.query(query).catch(logger.error.bind(logger));
+      await client.query(query).catch(err => {
+        logger.debug(query);
+        logger.error(err);
+      });
       return client.release();
     } catch (error) {
       client.release();
