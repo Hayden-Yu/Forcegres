@@ -8,7 +8,9 @@
     "app": "node build/index.js",
     "start": "npm run build && npm run app",
     "init": "node build/index.js init",
-    "cron": "node build/index.js cron"
+    "cron": "node build/index.js cron",
+    "refresh": "node build/index.js enable",
+    "enable": "npm run refresh"
   },
   "repository": {
     "type": "git",

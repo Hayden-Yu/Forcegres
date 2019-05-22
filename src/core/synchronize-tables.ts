@@ -36,7 +36,7 @@ async function massDeleteRecords(name: string, ids: string[]) {
 
 async function loadFromScratch(schema: DescribeSObjectResult) {
   logger.info(`initialize postgres table ${schema.name}`);
-  PostgresDBService.createSobjectTable(schema);
+  await PostgresDBService.createSobjectTable(schema);
   const soql = ForceSchemaService.generateSelectStar(schema);
   return synchronizeTableWithPagination(await ForceDataService.query(soql), schema);
 }
@@ -63,7 +63,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
   return processes;
 }
 
-async function synchronizeTable(name: string) {
+export async function synchronizeTable(name: string, refresh?: boolean) {
   const currentTime = (new Date()).toISOString();
   const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC;`);
   const schema = await ForceSchemaService.describeObject(name);
@@ -71,18 +71,12 @@ async function synchronizeTable(name: string) {
   const processes: Promise<any>[] = [
     database.query(`INSERT INTO ${SCHEMA}.internal_syncHistory (objectName, ts) VALUES ('${name}','${currentTime}');`),
   ];
-  if (!syncHistory.rows.length) {
+  if (!syncHistory.rows.length || refresh) {
     processes.push(loadFromScratch(schema));
   } else {
     const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC');
-    const schemaChanged = !(await ForceSchemaService.describeObject(name, lastSync.format('ddd, D MMM YYYY HH:mm:ss') + ' GMT'));
-    if (schemaChanged) {
-      logger.warning(`${name} schema changed, performing full table refresh`);
-      processes.push(database.query(`DROP TABLE ${SCHEMA}.${name};`).then(() => loadFromScratch(schema)));
-    } else {
-      (await updateTable(schema, lastSync.toISOString(), currentTime))
+    (await updateTable(schema, lastSync.toISOString(), currentTime))
         .forEach(el => processes.push(el));
-    }
   }
   await Promise.all(processes);
 }

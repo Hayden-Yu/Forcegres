@@ -52,10 +52,15 @@ export class PostgresDBService {
               keyprefix = ${el.keyPrefix === null ? null : `'${el.keyPrefix}'`};
         `.replace(/\s+/g, ' ');
       }, '');
-      await client.query(query).catch(err => {
-        logger.debug(query);
-        logger.error(err);
-      });
+      await new Promise((resolve, reject) => 
+        client.query(query, (err, res) => {
+          if (err) {
+            logger.debug(query);
+            logger.error(err);
+            return reject(err);
+          }
+          return resolve(res);
+        }));
       return client.release();
     } catch (error) {
       client.release();
@@ -71,18 +76,32 @@ export class PostgresDBService {
       (${fieldList.join(',')},PRIMARY KEY (Id));`);
   }
 
-  public static loadData(records: any[], schema: DescribeSObjectResult) {
+  public static async loadData(records: any[], schema: DescribeSObjectResult) {
       if (!records || !records.length) {
         return Promise.resolve();
       }
-      const insert = `INSERT INTO ${SCHEMA}.${schema.name} (${schema.fields.map(f => f.name).join(',')}) VALUES `;
-      const query = records.reduce((sql, record) => sql + `${insert} (${schema.fields.map(field => getRecordSqlValue(record, field)).join(',')})
+      const columns = await this.findExistingColumns(schema.name);
+      const fields = schema.fields.filter(field => columns.indexOf(field.name.toLowerCase()) != -1);
+      const insert = `INSERT INTO ${SCHEMA}.${schema.name} (${fields.map(f => f.name).join(',')}) VALUES `;
+      const query = records.reduce((sql, record) => sql + `${insert} (${fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
-        UPDATE SET ${schema.fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
-        return database.query(query).catch((err: any) => {
-          logger.debug(query);
-          logger.error(err);
-        });
+        UPDATE SET ${fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
+        return new Promise((resolve, reject) => database.query(query, (err, res) => {
+            if (err) {
+              logger.debug(query);
+              logger.error(err);
+              return reject(err);
+            }
+            return resolve(res);
+          }));
+  }
+
+  private static findExistingColumns(name: string) {
+    return database.query(`SELECT column_name FROM information_schema.columns WHERE table_schema='${SCHEMA}' AND table_name='${name.toLowerCase()}';`)
+      .then(result => {
+        logger.debug(`found ${result.rows.length} columns on table ${name}`);
+        return result.rows.map(el => el['column_name']);
+      });
   }
 }
 
