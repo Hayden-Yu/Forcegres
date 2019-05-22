@@ -75,7 +75,7 @@ export async function synchronizeTable(name: string, refresh?: boolean) {
     processes.push(loadFromScratch(schema));
   } else {
     const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC');
-    (await updateTable(schema, lastSync.toISOString(), currentTime))
+    (await updateTable(schema, lastSync.subtract(2, 'minutes').toISOString(), currentTime))
         .forEach(el => processes.push(el));
   }
   await Promise.all(processes);
