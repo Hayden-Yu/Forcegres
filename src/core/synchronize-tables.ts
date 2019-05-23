@@ -6,7 +6,8 @@ import { QueryResult, DescribeSObjectResult } from "jsforce";
 import { ForceDataService } from "./service/force-data.service";
 import { logger } from "../config/logger";
 
-const SOQL_WHERE_IN_SIZE = 600;
+// fun fact: soql HTTP 414 happen with about 15000 chars, but got 431 once with 12000 chars while testing limit
+const SOQL_WHERE_IN_SIZE = 500;
 
 function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult): Promise<any> {
   const processes = [];
@@ -65,7 +66,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
 
 export async function synchronizeTable(name: string, refresh?: boolean) {
   const currentTime = (new Date()).toISOString();
-  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC;`);
+  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name.substring(0,15)}' ORDER BY id DESC;`);
   const schema = await ForceSchemaService.describeObject(name);
   
   const processes: Promise<any>[] = [
