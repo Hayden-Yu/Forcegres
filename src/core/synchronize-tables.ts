@@ -75,9 +75,11 @@ export async function synchronizeTable(name: string, refresh?: boolean) {
   if (!syncHistory.rows.length || refresh) {
     processes.push(loadFromScratch(schema));
   } else {
-    const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC');
-    (await updateTable(schema, lastSync.subtract(2, 'minutes').toISOString(), currentTime))
-        .forEach(el => processes.push(el));
+    if (schema.replicateable) {
+      const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC');
+      (await updateTable(schema, lastSync.subtract(2, 'minutes').toISOString(), currentTime))
+          .forEach(el => processes.push(el));
+    }
   }
   await Promise.all(processes);
 }
