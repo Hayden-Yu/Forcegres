@@ -22,8 +22,16 @@ export class ForceSchemaService {
       sf.describe(objectName, (err, meta) => {
         logger.debug(`describing ${objectName} sf object${timestamp ? ` if modified after ${timestamp}` : ''}`);
         if (err) {
-          logger.error(err.message);
-          return reject(err);
+          if (err.message === 'read ECONNRESET') {
+            const RETRY_TIMEOUT = 500;
+            logger.warning(`describe object ${objectName} socket hang up, retry in ${RETRY_TIMEOUT} ms`);
+            setTimeout(() => {
+              resolve(this.describeObject(objectName, timestamp));
+            }, RETRY_TIMEOUT);
+          } else {
+            logger.error(err.message);
+            return reject(err);
+          }
         }
         return resolve(meta);
       }, timestamp);
