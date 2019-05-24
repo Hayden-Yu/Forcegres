@@ -1,9 +1,10 @@
-import { transports, createLogger } from 'winston';
+import { transports, createLogger, format } from 'winston';
 import { environments } from '../environments/environments';
 
 const config = {
   level: (environments.logger && environments.logger.logLevel) ? environments.logger.logLevel: 'info',
   transports: [] as any[],
+  format: format.combine(format.timestamp(), format.json()),
 };
 
 if (environments.logger && environments.logger.fileName) {
