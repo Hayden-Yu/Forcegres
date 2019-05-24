@@ -51,7 +51,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
     const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
     processes.push(
       synchronizeTableWithPagination(
-        await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id}'`).join(',')})`),
+        await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id.substring(0,15)}'`).join(',')})`),
         schema));
     logger.info(`synchronized ${chunk.length} updated ${schema.name} records`);
     recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
@@ -66,7 +66,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
 
 export async function synchronizeTable(name: string, refresh?: boolean) {
   const currentTime = (new Date()).toISOString();
-  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name.substring(0,15)}' ORDER BY id DESC;`);
+  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC;`);
   const schema = await ForceSchemaService.describeObject(name);
   
   const processes: Promise<any>[] = [
