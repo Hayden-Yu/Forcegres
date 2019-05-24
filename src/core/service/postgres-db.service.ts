@@ -80,8 +80,7 @@ export class PostgresDBService {
       if (!records || !records.length) {
         return Promise.resolve();
       }
-      const columns = await this.findExistingColumns(schema.name);
-      const fields = schema.fields.filter(field => columns.indexOf(field.name.toLowerCase()) != -1);
+      const fields = schema.fields;
       const insert = `INSERT INTO ${SCHEMA}.${schema.name} (${fields.map(f => f.name).join(',')}) VALUES `;
       const query = records.reduce((sql, record) => sql + `${insert} (${fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
@@ -96,7 +95,7 @@ export class PostgresDBService {
           }));
   }
 
-  private static findExistingColumns(name: string) {
+  public static findExistingColumns(name: string) {
     return database.query(`SELECT column_name FROM information_schema.columns WHERE table_schema='${SCHEMA}' AND table_name='${name.toLowerCase()}';`)
       .then(result => {
         logger.debug(`found ${result.rows.length} columns on table ${name}`);

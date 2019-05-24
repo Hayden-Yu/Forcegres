@@ -66,7 +66,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
 
 export async function synchronizeTable(name: string, refresh?: boolean) {
   const currentTime = (new Date()).toISOString();
-  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC;`);
+  const syncHistory = await database.query(`SELECT id, ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC LIMIT 1;`);
   const schema = await ForceSchemaService.describeObject(name);
   
   const processes: Promise<any>[] = [
@@ -76,6 +76,8 @@ export async function synchronizeTable(name: string, refresh?: boolean) {
     processes.push(loadFromScratch(schema));
   } else {
     if (schema.replicateable) {
+      const columns = await PostgresDBService.findExistingColumns(schema.name);
+      schema.fields = schema.fields.filter(field => columns.indexOf(field.name.toLowerCase()) != -1);
       const lastSync = moment.tz(syncHistory.rows[0]['ts'], 'UTC');
       (await updateTable(schema, lastSync.subtract(2, 'minutes').toISOString(), currentTime))
           .forEach(el => processes.push(el));
