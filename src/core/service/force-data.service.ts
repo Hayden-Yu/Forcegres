@@ -46,12 +46,11 @@ export class ForceDataService {
   public static getRecentUpdates(objectName: string, from: string, to: string): Promise<string[]> {
     return new Promise((resolve, reject) => {
       sf.sobject(objectName).updated(from, to, (err, res) => {
-        logger.debug(`retrieving recent updates on object ${objectName}`)
         if (err) {
           logger.error(err.message);
           return reject(err);
         }
-        logger.debug(`found ${res.ids.length} updates`);
+        logger.debug(`found ${res.ids.length} updates on ${objectName}`);
         return resolve(res.ids);
       });
     });
@@ -60,12 +59,11 @@ export class ForceDataService {
   public static getRecentDeletes(objectName: string, from: string, to: string): Promise<string[]> {
     return new Promise((resolve, reject) => {
       sf.sobject(objectName).deleted(from, to, (err, res) => {
-        logger.debug(`retrieving recent deletes on object ${objectName}`)
         if (err) {
           logger.error(err.message);
           return reject(err);
         }
-        logger.debug(`found ${res.deletedRecords.length} deletes`);
+        logger.debug(`found ${res.deletedRecords.length} deletes on ${objectName}`);
         return resolve(res.deletedRecords.map(el => el.id));
       });
     });

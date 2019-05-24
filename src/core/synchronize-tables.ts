@@ -22,19 +22,6 @@ function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: D
   return Promise.all(processes);
 }
 
-async function massDeleteRecords(name: string, ids: string[]) {
-  const connection = await database.connect();
-  try {
-    await connection.query(`CREATE TEMPORARY TABLE temp_delete_${name} (Id TEXT PRIMARY KEY);`);
-    await connection.query(`INSERT INTO temp_delete_${name} (Id) VALUES (${ids.map(id=>`'${id.substring(0,15)}'`).join(',')})`);
-    await connection.query(`DELETE FROM ${SCHEMA}.${name} USING temp_delete_${name} WHERE ${name}.Id = temp_delete_${name}.Id`);
-    await connection.query(`DROP TABLE temp_delete_${name}`);
-  } catch(err) {
-    logger.error(err);
-  }
-  connection.release();
-}
-
 async function loadFromScratch(schema: DescribeSObjectResult) {
   logger.info(`initialize postgres table ${schema.name}`);
   await PostgresDBService.createSobjectTable(schema);
@@ -45,7 +32,6 @@ async function loadFromScratch(schema: DescribeSObjectResult) {
 async function updateTable(schema: DescribeSObjectResult, lastSync: string, currentTime: string) {
   const processes = [];
   let recentUpdates = await ForceDataService.getRecentUpdates(schema.name, lastSync, currentTime);
-  logger.info(`found ${recentUpdates.length} recent updates on ${schema.name}`);
   const soql = ForceSchemaService.generateSelectStar(schema);
   while(recentUpdates.length) {
     const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
@@ -57,9 +43,8 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
     recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
   }
   let recentDeletes = await ForceDataService.getRecentDeletes(schema.name, lastSync, currentTime);
-  logger.info(`found ${recentUpdates.length} recent deletes on ${schema.name}`);
   if (recentDeletes.length) {
-    processes.push(massDeleteRecords(schema.name, recentDeletes));
+    processes.push(PostgresDBService.deleteRecords(schema.name, recentDeletes.map(id=>id.substring(0,15))));
   }
   return processes;
 }

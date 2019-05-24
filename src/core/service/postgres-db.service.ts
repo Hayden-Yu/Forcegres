@@ -3,6 +3,7 @@ import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field } from 'jsfor
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { logger } from '../../config/logger';
+import { QueryArrayResult } from 'pg';
 
 export class PostgresDBService {
   public static initializeSchema() {
@@ -53,14 +54,7 @@ export class PostgresDBService {
         `.replace(/\s+/g, ' ');
       }, '');
       await new Promise((resolve, reject) => 
-        client.query(query, (err, res) => {
-          if (err) {
-            logger.debug(query);
-            logger.error(err);
-            return reject(err);
-          }
-          return resolve(res);
-        }));
+        client.query(query, logQueryResultCb(query, resolve, reject)));
       return client.release();
     } catch (error) {
       client.release();
@@ -85,14 +79,7 @@ export class PostgresDBService {
       const query = records.reduce((sql, record) => sql + `${insert} (${fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
         UPDATE SET ${fields.filter(f=>f.name!=='Id').map(f=> `${f.name}=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
-        return new Promise((resolve, reject) => database.query(query, (err, res) => {
-            if (err) {
-              logger.debug(query);
-              logger.error(err);
-              return reject(err);
-            }
-            return resolve(res);
-          }));
+        return new Promise((resolve, reject) => database.query(query, logQueryResultCb(query, resolve, reject)));
   }
 
   public static findExistingColumns(name: string) {
@@ -101,6 +88,31 @@ export class PostgresDBService {
         logger.debug(`found ${result.rows.length} columns on table ${name}`);
         return result.rows.map(el => el['column_name']);
       });
+  }
+
+  public static async deleteRecords(name: string, ids: any[]) {
+    const connection = await database.connect();
+    try {
+      await connection.query(`CREATE TEMPORARY TABLE temp_delete_${name} (Id TEXT PRIMARY KEY);`);
+      await connection.query(`INSERT INTO temp_delete_${name} (Id) VALUES ${ids.map(id=>`('${id}')`).join(',')};`);
+      await connection.query(`DELETE FROM ${SCHEMA}.${name} USING temp_delete_${name} WHERE ${name}.Id = temp_delete_${name}.Id`);
+      await connection.query(`DROP TABLE temp_delete_${name}`);
+      logger.debug(`deleted ${ids.length} records from ${name}`);
+    } catch(err) {
+      logger.error(err);
+    }
+    connection.release();
+  }
+}
+
+function logQueryResultCb(query: string, resolve: (res: QueryArrayResult)=>any, reject: (err: Error)=>any) {
+  return (err: Error, res: QueryArrayResult) => {
+    if (err) {
+      logger.debug(query);
+      logger.error(err);
+      return reject(err);
+    }
+    return resolve(res);
   }
 }
 
