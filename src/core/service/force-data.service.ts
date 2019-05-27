@@ -9,6 +9,7 @@ export class ForceDataService {
       try {
         sf.query(query, undefined, (err, res) => {
           if (err) {
+            logger.debug(query);
             return reject(err);
           }
           return resolve(res);
