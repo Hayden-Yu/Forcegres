@@ -95,8 +95,8 @@ export class PostgresDBService {
     try {
       await connection.query(`CREATE TEMPORARY TABLE temp_delete_${name} (Id TEXT PRIMARY KEY);`);
       await connection.query(`INSERT INTO temp_delete_${name} (Id) VALUES ${ids.map(id=>`('${id}')`).join(',')};`);
-      await connection.query(`DELETE FROM ${SCHEMA}.${name} USING temp_delete_${name} WHERE ${name}.Id = temp_delete_${name}.Id`);
-      await connection.query(`DROP TABLE temp_delete_${name}`);
+      await connection.query(`DELETE FROM ${SCHEMA}.${name} USING temp_delete_${name} WHERE ${name}.Id = temp_delete_${name}.Id;`);
+      await connection.query(`DROP TABLE temp_delete_${name};`);
       logger.debug(`deleted ${ids.length} records from ${name}`);
     } catch(err) {
       logger.error(err);

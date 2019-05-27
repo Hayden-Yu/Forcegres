@@ -7,7 +7,7 @@ import { ForceDataService } from "./service/force-data.service";
 import { logger } from "../config/logger";
 
 // fun fact: soql HTTP 414 happen with about 15000 chars, but got 431 once with 12000 chars while testing limit
-const SOQL_WHERE_IN_SIZE = 500;
+const SOQL_SIZE = 1400;
 
 function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult): Promise<any> {
   const processes = [];
@@ -33,14 +33,15 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
   const processes = [];
   let recentUpdates = await ForceDataService.getRecentUpdates(schema.name, lastSync, currentTime);
   const soql = ForceSchemaService.generateSelectStar(schema);
+  const chunkSize = Math.floor((SOQL_SIZE-(soql.length+15))/18);
   while(recentUpdates.length) {
-    const chunk = recentUpdates.slice(0,SOQL_WHERE_IN_SIZE);
+    const chunk = recentUpdates.slice(0,chunkSize);
     processes.push(
       synchronizeTableWithPagination(
         await ForceDataService.query(`${soql} WHERE Id IN (${chunk.map(id=>`'${id.substring(0,15)}'`).join(',')})`),
         schema));
     logger.info(`synchronized ${chunk.length} updated ${schema.name} records`);
-    recentUpdates = recentUpdates.slice(SOQL_WHERE_IN_SIZE);
+    recentUpdates = recentUpdates.slice(chunkSize);
   }
   let recentDeletes = await ForceDataService.getRecentDeletes(schema.name, lastSync, currentTime);
   if (recentDeletes.length) {
