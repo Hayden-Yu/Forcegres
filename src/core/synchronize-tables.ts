@@ -33,7 +33,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
   const processes = [];
   let recentUpdates = await ForceDataService.getRecentUpdates(schema.name, lastSync, currentTime);
   const soql = ForceSchemaService.generateSelectStar(schema);
-  const chunkSize = Math.floor((SOQL_SIZE-(soql.length+15))/18);
+  const chunkSize = Math.floor((SOQL_SIZE-(encodeURI(soql).length+24))/25);
   while(recentUpdates.length) {
     const chunk = recentUpdates.slice(0,chunkSize);
     processes.push(
