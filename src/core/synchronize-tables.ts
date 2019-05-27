@@ -7,7 +7,7 @@ import { ForceDataService } from "./service/force-data.service";
 import { logger } from "../config/logger";
 
 // fun fact: soql HTTP 414 happen with about 15000 chars, but got 431 once with 12000 chars while testing limit
-const SOQL_SIZE = 1400;
+const SOQL_SIZE = 14000;
 
 function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult): Promise<any> {
   const processes = [];
