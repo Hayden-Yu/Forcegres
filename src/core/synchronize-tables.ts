@@ -44,6 +44,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
     recentUpdates = recentUpdates.slice(chunkSize);
   }
   let recentDeletes = await ForceDataService.getRecentDeletes(schema.name, lastSync, currentTime);
+  await Promise.all(processes); // let updates sync in before deleting
   if (recentDeletes.length) {
     processes.push(PostgresDBService.deleteRecords(schema.name, recentDeletes.map(id=>id.substring(0,15))));
   }
