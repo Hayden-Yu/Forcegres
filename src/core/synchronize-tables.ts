@@ -16,9 +16,7 @@ function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: D
     processes.push(
       ForceDataService.queryNext(queryResult).then(res => synchronizeTableWithPagination(res, schema)))
   }
-  processes.push(
-    PostgresDBService.loadData(queryResult.records, schema)
-      .then(()=>logger.info(`loading sobject [${schema.name}] ${queryResult.records.length} records into db`)));
+  processes.push(PostgresDBService.loadData(queryResult.records, schema));
   return Promise.all(processes);
 }
 
@@ -44,6 +42,7 @@ async function updateTable(schema: DescribeSObjectResult, lastSync: string, curr
     recentUpdates = recentUpdates.slice(chunkSize);
   }
   let recentDeletes = await ForceDataService.getRecentDeletes(schema.name, lastSync, currentTime);
+  await Promise.all(processes); // let updates sync in before deleting
   if (recentDeletes.length) {
     processes.push(PostgresDBService.deleteRecords(schema.name, recentDeletes.map(id=>id.substring(0,15))));
   }
