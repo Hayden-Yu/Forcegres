@@ -79,7 +79,10 @@ export class PostgresDBService {
       const query = records.reduce((sql, record) => sql + `${insert} (${fields.map(field => getRecordSqlValue(record, field)).join(',')})
         ON CONFLICT(Id) DO 
         UPDATE SET ${fields.filter(f=>f.name!=='Id').map(f=> `"${f.name.toLowerCase()}"=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
-        return new Promise((resolve, reject) => database.query(query, logQueryResultCb(query, resolve, reject)));
+        return new Promise((resolve, reject) => database.query(query, logQueryResultCb(query, resolve, reject))).then(res => {
+          logger.info(`Loaded ${records.length} records into [${schema.name}]`);
+          return res;
+        });
   }
 
   public static findExistingColumns(name: string) {

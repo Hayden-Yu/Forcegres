@@ -16,9 +16,7 @@ function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: D
     processes.push(
       ForceDataService.queryNext(queryResult).then(res => synchronizeTableWithPagination(res, schema)))
   }
-  processes.push(
-    PostgresDBService.loadData(queryResult.records, schema)
-      .then(()=>logger.info(`loading sobject [${schema.name}] ${queryResult.records.length} records into db`)));
+  processes.push(PostgresDBService.loadData(queryResult.records, schema));
   return Promise.all(processes);
 }
 
