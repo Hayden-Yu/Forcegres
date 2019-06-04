@@ -131,10 +131,14 @@ function getRecordSqlValue(record: any, field: Field) {
   if (sqlType === 'TEXT' 
     || sqlType === 'DATE' 
     || sqlType === 'TIMESTAMP'
+    || sqlType === 'TIME'
     || sqlType.indexOf('CHAR') !== -1) {
       if (typeof value === 'object') { 
         // some fields returns JSON but decribe as string e.g. Account.ShippingAddress
         value = JSON.stringify(value);
+      }
+      if (sqlType === 'TIME' && value) {
+        value = value.replace(/^(.*)Z$/, '$1');
       }
       return `'${`${value}`.replace(/'/g, '\'\'')}'`
   }
