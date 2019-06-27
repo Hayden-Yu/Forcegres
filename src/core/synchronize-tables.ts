@@ -8,6 +8,7 @@ import { logger } from "../config/logger";
 
 // fun fact: soql HTTP 414 happen with about 15000 chars, but got 431 once with 12000 chars while testing limit
 const SOQL_SIZE = 14000;
+const SYNC_TABLE_GAP = 300;
 
 function synchronizeTableWithPagination(queryResult: QueryResult<any>, schema: DescribeSObjectResult): Promise<any> {
   const processes = [];
@@ -71,7 +72,13 @@ export async function synchronizeTable(name: string, refresh?: boolean) {
   await Promise.all(processes);
 }
 
+function timeOut(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export function synchronizeTables(): Promise<any> {
   return database.query(`SELECT objectname FROM ${SCHEMA}.internal_sobjects WHERE enableSync=true`)
-    .then(result => Promise.all(result.rows.map(row=>synchronizeTable(row['objectname']))));
+    .then(result => Promise.all(result.rows.reduce((acc, row)=>acc.push(timeOut((acc.length+1)*SYNC_TABLE_GAP).then(() => synchronizeTable(row['objectname']))), [])));
 }
