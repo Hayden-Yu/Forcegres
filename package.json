@@ -27,14 +27,17 @@
   },
   "homepage": "https://github.com/Hayden-Yu/Forcegres#readme",
   "dependencies": {
-    "@types/jsforce": "^1.9.6",
+    "@types/jsforce": "^1.9.7",
     "@types/moment-timezone": "^0.5.12",
     "@types/pg": "^7.4.14",
     "@types/winston": "^2.4.4",
-    "jsforce": "^1.9.1",
-    "moment-timezone": "^0.5.25",
+    "jsforce": "^1.9.2",
+    "moment-timezone": "^0.5.26",
     "pg": "^7.11.0",
-    "typescript": "^3.4.5",
+    "typescript": "^3.5.3",
     "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "codelyzer": "^5.1.0"
   }
 }

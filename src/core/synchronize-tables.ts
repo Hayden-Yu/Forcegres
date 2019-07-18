@@ -80,5 +80,5 @@ function timeOut(ms: number): Promise<void> {
 
 export function synchronizeTables(): Promise<any> {
   return database.query(`SELECT objectname FROM ${SCHEMA}.internal_sobjects WHERE enableSync=true`)
-    .then(result => Promise.all(result.rows.reduce((acc, row)=>acc.push(timeOut((acc.length+1)*SYNC_TABLE_GAP).then(() => synchronizeTable(row['objectname']))), [])));
+    .then(result => Promise.all(result.rows.reduce((acc, row)=>acc.push(timeOut((acc.length)*SYNC_TABLE_GAP).then(() => synchronizeTable(row['objectname']))), [])));
 }
