@@ -12,3 +12,4 @@ npm-debug.log
 Thumbs.db
 
 src/environments/environments.ts
+.env
