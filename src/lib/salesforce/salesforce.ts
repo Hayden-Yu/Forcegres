@@ -1,6 +1,7 @@
-import { ApiClient } from "./api-client";
+import { ApiClient, Config } from "./api-client";
 import { Soql } from "./soql";
 import { Sobject } from "./sobject";
+import { Logger } from "../Logger";
 
 export class Salesforce {
   public client: ApiClient;
@@ -8,15 +9,11 @@ export class Salesforce {
   public sobject: Sobject;
 
   constructor(
-    clientId: string,
-    clientSecret: string,
-    username: string,
-    password: string,
-    securityToken: string,
-    loginUrl?: string,
-    version?: string) {
-      this.client = new ApiClient(clientId, clientSecret, username, password, securityToken, loginUrl, version);
-      this.soql = new Soql(this.client);
-      this.sobject = new Sobject(this.client);
+    config: Config,
+    logger?: Logger
+    ) {
+      this.client = new ApiClient(config, logger);
+      this.soql = new Soql(this.client, logger);
+      this.sobject = new Sobject(this.client, logger);
   }
 }

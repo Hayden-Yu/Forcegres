@@ -1,6 +1,7 @@
 import request from 'request';
 import querystring from 'querystring';
-import { logger } from '../../config/logger';
+import { Logger, loggerPlaceHolder } from '../Logger';
+
 export class ApiClient {
   private clientId: string;
   private clientSecret: string;
@@ -10,29 +11,26 @@ export class ApiClient {
   private _version: string;
 
   private accessToken?: string;
-  private _url?: string;
+  private baseUrl?: string;
 
   private _limitInfo = '';
+  private logger: Logger;
 
   constructor(
-    clientId: string,
-    clientSecret: string,
-    username: string,
-    password: string,
-    securityToken: string,
-    loginUrl?: string,
-    version?: string
+    config: Config,
+    logger?: Logger
   ) {
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
-    this.username = username;
-    this.password = password + (securityToken || '');
-    this.loginUrl = loginUrl || 'https://login.salesforce.com/';
-    this._version = version || 'v46.0';
+    this.clientId = config.clientId;
+    this.clientSecret = config.clientSecret;
+    this.username = config.username;
+    this.password = config.password + (config.securityToken || '');
+    this.loginUrl = config.loginUrl || 'https://login.salesforce.com/';
+    this._version = config.version || 'v46.0';
+    this.logger = logger || loggerPlaceHolder;
   }
 
   private auth() {
-    logger.info('authenticating salesforce');
+    this.logger.info('authenticating salesforce');
     return new Promise((resolve, reject) => {
       request(`${this.loginUrl}services/oauth2/token`, {
         method: 'POST', 
@@ -42,31 +40,32 @@ export class ApiClient {
           'client_secret': this.clientSecret,
           'username': this.username,
           'password': this.password,
-        })
+        }),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
       }, (err, res) => {
         if (res && res.statusCode === 200) {
           const dt = JSON.parse(res.body)
           this.accessToken = dt['access_token'];
-          this._url = dt['instance_url'];
+          this.baseUrl = dt['instance_url'];
           return resolve()
         }
         if (err || (res.statusCode !== 200)) {
-          logger.error(err || res);
+          this.logger.error(err || res);
           return reject(err || res);
         }
       })
     });
   }
 
-  public get url(): string {
-    return this._url || '';
-  }
-
   public get version(): string {
     return this._version;
   }
 
-  public request(req: request.RequiredUriUrl & request.CoreOptions, noAuth?: boolean): Promise<request.Response> {
+  public async request(req: request.RequiredUriUrl & request.CoreOptions, noAuth?: boolean): Promise<request.Response> {
+    if (!this.accessToken) {
+      await this.auth();
+    }
+    req.baseUrl = this.baseUrl;
     if (!req.headers) {
       req.headers = {'Authorization': `Bearer ${this.accessToken}`};
     } else {
@@ -93,4 +92,14 @@ export class ApiClient {
   public get limitInfo() {
     return this._limitInfo;
   }
+}
+
+export type Config = {
+  clientId: string,
+  clientSecret: string,
+  username: string,
+  password: string,
+  securityToken: string,
+  loginUrl?: string,
+  version?: string,
 }

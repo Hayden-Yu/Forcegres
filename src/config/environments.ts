@@ -23,5 +23,6 @@ export const environments = {
   },
   logger: {
     logLevel: process.env.LOG_LEVEL || 'info',
+    fileName: process.env.LOG_FILENAME
   }
 }
