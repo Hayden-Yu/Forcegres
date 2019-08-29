@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_sobjects (
 CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_syncHistory (
   id SERIAL,
   objectName TEXT REFERENCES __SCHEMA__.internal_sobjects(objectName),
-  ts TIMESTAMP,
+  fromdate TIMESTAMP,
+  enddate TIMESTAMP,
+  finished BOOLEAN DEFAULT false,
   PRIMARY KEY (id)
 );
 
