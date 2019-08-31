@@ -1,5 +1,4 @@
-import { login as sfLogin, force } from "./src/config/force";
-import { init } from "./src/init";
+import { init, exec } from "./src/forcegres";
 import { database } from './src/config/database';
 //import { cron } from "./src/cron";
 import { logger } from "./src/config/logger";
@@ -9,7 +8,7 @@ async function app() {
   let option = '';
   for (let opt of process.argv) {
     if (opt === 'init'
-      || opt === 'cron'
+      || opt === 'exec'
       || opt === 'enable'
       || opt === 'refresh') {
         option = opt;
@@ -24,6 +23,9 @@ async function app() {
     case 'init': 
       await database.connect()
       return init();
+    case 'exec':
+      await database.connect()
+      return exec();
     // case 'cron': 
     //   return cron();
     // case 'enable':

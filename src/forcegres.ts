@@ -1,5 +1,6 @@
 import { logger } from "./config/logger";
 import { initalizeDatabase, loadSobjects } from './core/synchronize-database';
+import { cycle } from './core/cycle';
 
 export async function init() {
   try {
@@ -8,4 +9,8 @@ export async function init() {
   } catch (err) {
     logger.error(err);
   }
+}
+
+export function exec(): Promise<void> {
+  return cycle().then(()=>exec())
 }
