@@ -28,14 +28,14 @@ export class Sobject {
   recentUpdted(name: string, strat: string, end: string): Promise<UpdatedRecordsInfo> {
     return this.client.request({
       method: 'GET',
-      url: `/services/data/${this.client.version}/sobjects/${name}/updated?start=${strat}&end=${end}`,
+      url: `/services/data/${this.client.version}/sobjects/${name}/updated?start=${this.sfIsoDate(strat)}&end=${this.sfIsoDate(end)}`,
     }).then(res => JSON.parse(res.body))
   }
 
   recentDeleted(name: string, start: string, end: string): Promise<DeletedRecordsInfo> {
     return this.client.request({
       method: 'GET',
-      url: `/services/data/${this.client.version}/sobjects/${name}/deleted?start=${start}$end=${end}`,
+      url: `/services/data/${this.client.version}/sobjects/${name}/deleted?start=${this.sfIsoDate(start)}&end=${this.sfIsoDate(end)}`,
     }).then(res => JSON.parse(res.body))
   }
 
@@ -45,5 +45,18 @@ export class Sobject {
     }
     const q = `SELECT ${fields.map(f=>f.name).join(',')} FROM ${name}`
     return where ? q + where : q;
+  }
+
+  private sfIsoDate(date: string | Date) {
+    if (typeof date === 'string') {
+      date = new Date(date)
+    }
+    return date.getUTCFullYear() +
+    '-' + `${date.getUTCMonth() + 1}`.padStart(2, '0') +
+    '-' + `${date.getUTCDate()}`.padStart(2, '0') +
+    'T' + `${date.getUTCHours() + 1}`.padStart(2, '0') +
+    ':' + `${date.getUTCMinutes() + 1}`.padStart(2, '0') +
+    ':' + `${date.getUTCSeconds() + 1}`.padStart(2, '0') +
+    'Z';
   }
 }

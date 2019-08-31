@@ -1,9 +1,11 @@
+import moment from 'moment-timezone';
 import { database as db, SCHEMA } from "../config/database";
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { salesforce as sf } from '../config/salesforce';
 import * as translateQry from './translate-query';
 import { DescribeSObjectResult } from 'jsforce';
+import { logger } from "../config/logger";
 
 const SOQL_SIZE = 14000;
 
@@ -18,29 +20,39 @@ export function loadSobjects() {
     .then(res=>db.query(translateQry.loadSobject(res.sobjects)));
 }
 
+export async function loadChange(name: string) {
+  const lastSync = await findLastSyncDate(name);
+  return lastSync ? loadIncremental(name, lastSync) : loadScratch(name);
+}
+
 export async function loadScratch(name: string) {
   const date = (new Date()).toISOString();
   const schema = await sf.sobject.describe(name);
   const fields = await findExistingColumns(schema.name);
-  schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
- 
+  logger.info(`initialize postgres table ${schema.name}`);
   await db.query(translateQry.createSobjectTable(schema));
+  schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
   await db.query(translateQry.logSyncHistory(name, date));
   await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
   await db.query(translateQry.closeSyncHistory(name, date));
 }
 
-export async function loadChange(name: string) {
+export async function loadIncremental(name: string, start?: string) {
   const end = (new Date()).toISOString();
-  const start = await findLastSyncDate(name);
+  start = start || await findLastSyncDate(name);
   await db.query(translateQry.logSyncHistory(name, end, start));
-  await Promise.all([loadUpdates(name, start, end), loadDeletes(name, start, end)]);
+  await loadUpdates(name, start, end);
+  await loadDeletes(name, start, end);
   await db.query(translateQry.closeSyncHistory(name, end));
 }
 
+export function listTables(): Promise<string[]> {
+  return db.query(translateQry.listTables()).then(res => res.rows.map(r=>r.objectname));
+}
+
 async function loadUpdates(name: string, start: string, end: string) {
-  const changes = await sf.sobject.recentUpdted(name, start, end)
-  if (!changes.ids.length) {
+  const changes = await sf.sobject.recentUpdted(name, start, end);
+  if (!changes.ids || !changes.ids.length) {
     return;
   }
   
@@ -49,8 +61,10 @@ async function loadUpdates(name: string, start: string, end: string) {
   schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
  
   const soql = await sf.sobject.selectStar(schema.name, undefined, schema.fields);
+  logger.info(`Found ${changes.ids.length} updates on ${schema.name}`);
   const chunkSize = Math.floor((SOQL_SIZE-(encodeURI(soql).length+24))/25);
-  return loadUpdatesByChunk(soql, schema, changes.ids, chunkSize, []);
+  await loadUpdatesByChunk(soql, schema, changes.ids, chunkSize, []);
+  logger.info(`Finished synchronizing [${schema.name}]`);
 }
 
 function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending: string[], chunkSize: number, acc: Promise<void>[]): Promise<void>[] {
@@ -66,28 +80,33 @@ function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending
 
 async function loadDeletes(name: string, start: string, end: string) {
   const deletes = await sf.sobject.recentDeleted(name, start, end);
-  if (!deletes.deletedRecords.length) {
+  if (!deletes.deletedRecords || !deletes.deletedRecords.length) {
     return;
   }
-  return db.query(translateQry.deleteRecords(name, deletes.deletedRecords));
+  logger.info(`Found ${deletes.deletedRecords.length} updates on ${name}`);
+  await db.query(translateQry.deleteRecords(name, deletes.deletedRecords));
+  logger.debug(`deleted ${deletes.deletedRecords.length} records from ${name}`);
+  return;
 }
 
 async function loadDataFollowUp(schema: DescribeSObjectResult, locator: string | undefined): Promise<void> {
   if (!locator) {
     return;
   }
+  logger.info(`soql pagination retriving next page of ${schema.name}`)
   const r = await sf.soql.queryMore(locator);
   return Promise.all([loadChunkChange(schema, r.records),
     loadDataFollowUp(schema, r.nextRecordsUrl)]) as Promise<any>;
 }
 
-function loadChunkChange(schema: DescribeSObjectResult, records: any[]) {
-  return db.query(translateQry.loadData(records, schema));
+async function loadChunkChange(schema: DescribeSObjectResult, records: any[]): Promise<void> {
+  await db.query(translateQry.loadData(records, schema));
+  logger.info(`synchronized ${records.length} updated ${schema.name} records`);
 }
 
 function findLastSyncDate(name: string): Promise<string> {
   return db.query(translateQry.loadLastSync(name))
-    .then(res => res.rows[0].ts);
+    .then(res => res.rows[0] && res.rows[0].enddate ? moment.tz(res.rows[0].enddate, 'UTC').toISOString() : '');
 }
 
 function findExistingColumns(name: string) {

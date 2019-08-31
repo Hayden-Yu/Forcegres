@@ -74,7 +74,7 @@ export function deleteRecords(name: string, deleted: DeletedRecord[]): string {
 }
 
 export function logSyncHistory(name: string, to: string, from?: string): string {
-  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,ts,fromdate,enddate) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',false);`;
+  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,finished) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',false);`;
 }
 
 export function closeSyncHistory(name: string, to: string): string {
@@ -82,10 +82,10 @@ export function closeSyncHistory(name: string, to: string): string {
 }
 
 export function loadLastSync(name: string): string {
-  return `SELECT ts FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC LIMIT 1;`;
+  return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC LIMIT 1;`;
 }
 
-export function listObject(): string {
+export function listTables(): string {
   return `SELECT objectname FROM ${SCHEMA}.internal_sobjects WHERE enablesync=true`;
 }
 
