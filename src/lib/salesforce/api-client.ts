@@ -71,6 +71,7 @@ export class ApiClient {
     } else {
       req.headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
+    this.logger.silly(req)
     return new Promise((resolve, reject) => {
       request(req, (err, res) => {
         if (err) {
@@ -80,9 +81,10 @@ export class ApiClient {
         if (res.statusCode === 401 && !noAuth) {
           return this.auth().then(() => this.request(req, true))
         } else {
-          if (res.headers['Sforce-Limit-Info']) {
-            this._limitInfo = <string> res.headers['Sforce-Limit-Info'];
+          if (res.headers['sforce-limit-info']) {
+            this._limitInfo = (<string> res.headers['sforce-limit-info']).replace('api-usage=', '');
           }
+          this.logger.silly(res)
           return resolve(res);
         }
       })
