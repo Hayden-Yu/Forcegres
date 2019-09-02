@@ -5,12 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && cp -r resources build/",
-    "app": "node build/index.js",
-    "start": "npm run build && npm run app",
     "init": "node build/index.js init",
     "exec": "node build/index.js exec",
-    "refresh": "node build/index.js enable",
-    "enable": "npm run refresh",
     "test": "mocha --require ts-node/register test/*.test.ts test/**/*.test.ts"
   },
   "repository": {
