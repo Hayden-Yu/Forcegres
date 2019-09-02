@@ -109,7 +109,8 @@ function getRecordSqlValue(record: any, field: Field): string {
       }
       if (sqlType === 'TIME' && value) {
         value = value.replace(/^(.*)Z$/, '$1');
-      } else if (sqlType === 'TIMESTAMP' && value) {
+      }
+       if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
         if (value.match(/^0000-.*/)) {
           value = '-infinity';
         } else if (value.match(/^9999-.*/)) {
