@@ -86,7 +86,7 @@ export function loadLastSync(name: string): string {
 }
 
 export function listTables(): string {
-  return `SELECT objectname FROM ${SCHEMA}.internal_sobjects WHERE enablesync=true`;
+  return `SELECT objectname FROM ${SCHEMA}.internal_sobjects WHERE enablesync=true AND replicateable=true`;
 }
 
 function getRecordSqlValue(record: any, field: Field): string {
