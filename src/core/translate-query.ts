@@ -111,9 +111,9 @@ function getRecordSqlValue(record: any, field: Field): string {
         value = value.replace(/^(.*)Z$/, '$1');
       }
        if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
-        if (value.match(/^0000-.*/)) {
+        if (/^0000-.*/.test(value)) {
           value = '-infinity';
-        } else if (value.match(/^9999-.*/)) {
+        } else if (/^9999-.*/.test(value)) {
           value = 'infinity';
         }
       }
