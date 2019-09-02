@@ -24,10 +24,11 @@ export class Soql {
       url: locator,
       timeout: 30 * 1000
     }).then(res => JSON.parse(res.body), err => {
-      this.logger.error(err)
-      if (err.code === 'ETIMEDOUT') {
+      if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
+        this.logger.silly('retry soql after socket timeout')
         return this.queryMore(locator)
       }
+      this.logger.error(err)
       throw err;
     })
   }
