@@ -1,14 +1,14 @@
-import { login as sfLogin, force } from "./src/config/force";
-import { init } from "./src/init";
-import { cron } from "./src/cron";
+import { init, exec } from "./src/forcegres";
+import { database } from './src/config/database';
+//import { cron } from "./src/cron";
 import { logger } from "./src/config/logger";
-import { refreshTable } from "./src/refresh-table";
+//import { refreshTable } from "./src/refresh-table";
 
-function app() {  
+async function app() {  
   let option = '';
   for (let opt of process.argv) {
     if (opt === 'init'
-      || opt === 'cron'
+      || opt === 'exec'
       || opt === 'enable'
       || opt === 'refresh') {
         option = opt;
@@ -19,29 +19,23 @@ function app() {
     return process.exit(1);
   }
 
-  sfLogin().then(() => {
-    switch (option) {
-      case 'init': 
-        return init();
-      case 'cron': 
-        return cron();
-      case 'enable':
-      case 'refresh':
-        const argIndex = process.argv.indexOf(option) + 1;
-        if (argIndex >= process.argv.length) {
-          console.log(`Please specify sobject name`);
-        }
-        return refreshTable(process.argv[argIndex]);
-    }
-  }).then(() => {
-    const usage = force.limitInfo.apiUsage;
-    if (usage !== undefined) {
-      logger.info(`API usage: ${usage.used} / ${usage.limit}`);
-    }
-  }).catch((err: any) => {
-    logger.error(err);
-    process.exit(1);
-  })
+  switch (option) {
+    case 'init': 
+      await database.connect()
+      return init();
+    case 'exec':
+      await database.connect()
+      return exec();
+    // case 'cron': 
+    //   return cron();
+    // case 'enable':
+    // case 'refresh':
+    //   const argIndex = process.argv.indexOf(option) + 1;
+    //   if (argIndex >= process.argv.length) {
+    //     console.log(`Please specify sobject name`);
+    //   }
+    //   return refreshTable(process.argv[argIndex]);
+  }
 }
 
-app();
+app().then(() => database.disconnect())

@@ -5,12 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && cp -r resources build/",
-    "app": "node build/index.js",
-    "start": "npm run build && npm run app",
     "init": "node build/index.js init",
-    "cron": "node build/index.js cron",
-    "refresh": "node build/index.js enable",
-    "enable": "npm run refresh"
+    "exec": "node build/index.js exec",
+    "test": "mocha --require ts-node/register test/*.test.ts test/**/*.test.ts"
   },
   "repository": {
     "type": "git",
@@ -27,17 +24,28 @@
   },
   "homepage": "https://github.com/Hayden-Yu/Forcegres#readme",
   "dependencies": {
-    "@types/jsforce": "^1.9.7",
+    "@types/dotenv": "^6.1.1",
+    "@types/jsforce": "^1.9.9",
     "@types/moment-timezone": "^0.5.12",
-    "@types/pg": "^7.4.14",
+    "@types/pg": "^7.11.0",
+    "@types/request": "^2.48.2",
     "@types/winston": "^2.4.4",
+    "dotenv": "^8.1.0",
     "jsforce": "^1.9.2",
     "moment-timezone": "^0.5.26",
-    "pg": "^7.11.0",
-    "typescript": "^3.5.3",
+    "pg": "^7.12.1",
+    "request": "^2.88.0",
+    "typescript": "^3.6.2",
     "winston": "^3.2.1"
   },
   "devDependencies": {
-    "codelyzer": "^5.1.0"
+    "@types/chai": "^4.2.0",
+    "@types/mocha": "^5.2.7",
+    "@types/sinon": "^7.0.13",
+    "chai": "^4.2.0",
+    "codelyzer": "^5.1.0",
+    "mocha": "^6.2.0",
+    "sinon": "^7.4.1",
+    "ts-node": "^8.3.0"
   }
 }

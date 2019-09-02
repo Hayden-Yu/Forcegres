@@ -17,7 +17,7 @@ npm i
 
 * Edit environment settings
 ```
-cp ./src/environments/environments.example.ts ./src/environments/environments.ts && vim ./src/environments/environments.ts
+cp .env.example .env && vim ./env
 ```
 
 * After saving your environment, compile typescript source
@@ -30,10 +30,8 @@ npm run build
 npm run init
 ```
 
-* Schedule data refresh task with `npm run cron` to job scheduler of your choice 
+* Start a daemon with `npm run exec`. 
 
 ----
 
 Update `enableSync` on `internal_sobjects` table to enable synchronization of sobjects
-
-You can also edit `resources/data.psql` to include sobjects to sync prior to compiling
