@@ -28,12 +28,14 @@ export async function loadChange(name: string) {
 export async function loadScratch(name: string) {
   const date = (new Date()).toISOString();
   const schema = await sf.sobject.describe(name);
-  const fields = await findExistingColumns(schema.name);
   logger.info(`initialize postgres table ${schema.name}`);
   await db.query(translateQry.createSobjectTable(schema));
+
+  const fields = await findExistingColumns(schema.name);
   schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
   await db.query(translateQry.logSyncHistory(name, date));
-  await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
+  const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
+  await Promise.all([loadChunkData(schema, init.records), loadDataFollowUp(schema, init.nextRecordsUrl)])
   await db.query(translateQry.closeSyncHistory(name, date));
 }
 
@@ -73,7 +75,7 @@ function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending
   }
   const query = `${soql} WHERE Id IN (${pending.slice(0,chunkSize).map(id=>`'${id.substring(0,15)}'`).join(',')})`
   acc.push(sf.soql.query(query).then(res => {
-    return Promise.all([loadChunkChange(schema, res.records), loadDataFollowUp(schema, res.nextRecordsUrl)]) as Promise<any>
+    return Promise.all([loadChunkData(schema, res.records), loadDataFollowUp(schema, res.nextRecordsUrl)]) as Promise<any>
   }))
   return loadUpdatesByChunk(soql, schema, pending.slice(chunkSize), chunkSize, acc);
 }
@@ -95,13 +97,13 @@ async function loadDataFollowUp(schema: DescribeSObjectResult, locator: string |
   }
   logger.info(`soql pagination retriving next page of ${schema.name}`)
   const r = await sf.soql.queryMore(locator);
-  return Promise.all([loadChunkChange(schema, r.records),
+  return Promise.all([loadChunkData(schema, r.records),
     loadDataFollowUp(schema, r.nextRecordsUrl)]) as Promise<any>;
 }
 
-async function loadChunkChange(schema: DescribeSObjectResult, records: any[]): Promise<void> {
+async function loadChunkData(schema: DescribeSObjectResult, records: any[]): Promise<void> {
   await db.query(translateQry.loadData(records, schema));
-  logger.info(`synchronized ${records.length} updated ${schema.name} records`);
+  logger.info(`synchronized ${records.length} ${schema.name} records`);
 }
 
 function findLastSyncDate(name: string): Promise<string> {
