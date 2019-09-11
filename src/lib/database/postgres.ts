@@ -36,11 +36,7 @@ export class Postgres {
     });
   }
 
-  connect() {
-    return this.client.connect();
-  }
-
-  disconnect() { // TODO: this.client.end here is not terminating connections, need to investigate
+  disconnect() {
     this.logger.debug(`disconnecting pg pool with ${this.activeWorker} job running and ${this.queue.length} left in queue`);
     return this.client.end();
   }

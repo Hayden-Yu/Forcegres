@@ -21,10 +21,8 @@ async function app() {
 
   switch (option) {
     case 'init': 
-      await database.connect()
       return init();
     case 'exec':
-      await database.connect()
       return exec();
     // case 'cron': 
     //   return cron();
