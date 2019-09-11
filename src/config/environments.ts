@@ -10,8 +10,8 @@ export const environments = {
     user: <string>process.env.POSTGRES_USER,
     password: <string>process.env.POSTGRES_PASSWORD,
     max: Number(process.env.POSTGRES_MAX_CONNECTION) || 20,
-    idleTimeoutMillis: Number(process.env.POSTGRES_IDLE_TIMEOUT) || 30000,
-    connectionTimeoutMillis: Number(process.env.POSTGRES_CONNECTION_TIMEOUT) || 2000,
+    idleTimeoutMillis: Number(process.env.POSTGRES_IDLE_TIMEOUT) || 0,
+    connectionTimeoutMillis: Number(process.env.POSTGRES_CONNECTION_TIMEOUT) || 0,
   },
   force: {
     clientId: <string>process.env.FORCE_CLIENTID,
