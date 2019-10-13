@@ -21,7 +21,10 @@ export class Postgres {
       this.logger.silly('pg query queued');
       this._dequeue();
     });
-    this.events.on('dequeue', this._dequeue.bind(this));
+    this.events.on('dequeue', () => {
+      this.logger.silly('pg query finished');
+      this._dequeue();
+    });
   }
 
   query(qryStr: string, values?: any[]): Promise<QueryResult> {
@@ -29,6 +32,17 @@ export class Postgres {
       this.queue.push({
         query: qryStr,
         params: values,
+        resolve: resolve,
+        reject: reject
+      });
+      this.events.emit('enqueue');
+    });
+  }
+
+  transact(transaction: Transaction): Promise<void> {
+    return new Promise((resolve: () => void, reject) => {
+      this.queue.push({
+        transaction: transaction,
         resolve: resolve,
         reject: reject
       });
@@ -46,7 +60,6 @@ export class Postgres {
     this.client.query(query, task.params || [], (err, result) => {
       --this.activeWorker;
       this.events.emit('dequeue');
-      this.logger.silly('pg query finished');
       if (err) {
         this.logger.debug(query);
         this.logger.error(err);
@@ -78,10 +91,14 @@ export class Postgres {
     }
   }
 
+  count = 0;
   private _dequeue() {
+    this.logger.silly('attempt dequeue')
     if (this.MAX_POOL_SIZE > this.activeWorker) {
       const task = this.queue.shift();
       if (task) {
+        this.logger.debug(`processed ${this.count++} queries`)
+        this.logger.debug(`memory usage: ${process.memoryUsage().heapUsed}`)
         this.logger.silly(`picked up pg query`);
         try {
           ++this.activeWorker;
@@ -107,7 +124,7 @@ export type QueryRequest = {
   reject: (reason?: any) => void,
 }
 
-class Connection {
+export class Connection {
   private client: ClientBase;
   private logger: Logger;
 
@@ -129,3 +146,4 @@ class Connection {
 }
 
 export type Transaction = (conn: Connection) => Promise<void>
+export type Query = (qry: string, values?: any[]) => Promise<QueryResult>;
