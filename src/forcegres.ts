@@ -1,11 +1,11 @@
 import { logger } from "./config/logger";
-import { initalizeDatabase, loadSobjects } from './core/synchronize-database';
+import { initalizeDatabase, loadSobjectList } from './core/synchronize-database';
 import { cycle } from './core/cycle';
 
 export async function init() {
   try {
     await initalizeDatabase();
-    await loadSobjects();
+    await loadSobjectList();
   } catch (err) {
     logger.error(err);
   }

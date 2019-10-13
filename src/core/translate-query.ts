@@ -82,7 +82,7 @@ export function closeSyncHistory(name: string, to: string): string {
 }
 
 export function loadLastSync(name: string): string {
-  return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY id DESC LIMIT 1;`;
+  return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY enddate DESC LIMIT 1;`;
 }
 
 export function listTables(): string {
@@ -110,7 +110,7 @@ function getRecordSqlValue(record: any, field: Field): string {
       if (sqlType === 'TIME' && value) {
         value = value.replace(/^(.*)Z$/, '$1');
       }
-       if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
+      if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
         if (/^0000-.*/.test(value)) {
           value = '-infinity';
         } else if (/^9999-.*/.test(value)) {
