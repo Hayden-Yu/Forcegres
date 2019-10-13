@@ -15,7 +15,14 @@ export class Soql {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/query?q=${encodeURI(qry)}`,
-    }).then(res => JSON.parse(res.body))
+    }).then(async res => {
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        this.logger.debug(qry);
+        this.logger.error(JSON.parse(res.body));
+        throw Error('soql failure');
+      }
+      return JSON.parse(res.body);
+    })
   }
 
   queryMore(locator: string): Promise<QueryResult<any>> {
@@ -23,7 +30,13 @@ export class Soql {
       method: 'GET',
       url: locator,
       timeout: 30 * 1000
-    }).then(res => JSON.parse(res.body), err => {
+    }).then(async res => {
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        this.logger.error(JSON.parse(res.body));
+        throw Error('soql failure');
+      }
+      return JSON.parse(res.body);
+    }, err => {
       if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
         this.logger.silly('retry soql after socket timeout')
         return this.queryMore(locator)
