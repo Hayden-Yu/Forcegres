@@ -31,7 +31,6 @@
     "@types/request": "^2.48.2",
     "@types/winston": "^2.4.4",
     "dotenv": "^8.1.0",
-    "jsforce": "^1.9.2",
     "moment-timezone": "^0.5.26",
     "pg": "^7.12.1",
     "request": "^2.88.0",
