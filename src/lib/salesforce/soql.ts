@@ -19,7 +19,7 @@ export class Soql {
       if (res.statusCode < 200 || res.statusCode >= 300) {
         this.logger.debug(qry);
         this.logger.error(JSON.parse(res.body));
-        throw Error('soql failure');
+        return Promise.reject(Error('soql failure'));
       }
       return JSON.parse(res.body);
     })
@@ -33,7 +33,7 @@ export class Soql {
     }).then(async res => {
       if (res.statusCode < 200 || res.statusCode >= 300) {
         this.logger.error(JSON.parse(res.body));
-        throw Error('soql failure');
+        return Promise.reject(Error('soql failure'));
       }
       return JSON.parse(res.body);
     }, err => {
