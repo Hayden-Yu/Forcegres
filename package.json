@@ -1,6 +1,6 @@
 {
   "name": "forcegres",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Salesforce to SQL data sync",
   "main": "index.js",
   "scripts": {
@@ -25,26 +25,27 @@
   "homepage": "https://github.com/Hayden-Yu/Forcegres#readme",
   "dependencies": {
     "@types/dotenv": "^6.1.1",
-    "@types/jsforce": "^1.9.9",
+    "@types/jsforce": "^1.9.10",
     "@types/moment-timezone": "^0.5.12",
-    "@types/pg": "^7.11.0",
-    "@types/request": "^2.48.2",
+    "@types/pg": "^7.11.2",
+    "@types/request": "^2.48.3",
     "@types/winston": "^2.4.4",
-    "dotenv": "^8.1.0",
-    "moment-timezone": "^0.5.26",
+    "dotenv": "^8.2.0",
+    "moment-timezone": "^0.5.27",
     "pg": "^7.12.1",
     "request": "^2.88.0",
-    "typescript": "^3.6.2",
+    "typescript": "^3.6.4",
     "winston": "^3.2.1"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.0",
+    "@types/chai": "^4.2.3",
     "@types/mocha": "^5.2.7",
-    "@types/sinon": "^7.0.13",
+    "@types/sinon": "^7.5.0",
     "chai": "^4.2.0",
-    "codelyzer": "^5.1.0",
-    "mocha": "^6.2.0",
-    "sinon": "^7.4.1",
-    "ts-node": "^8.3.0"
+    "codelyzer": "^5.1.2",
+    "mocha": "^6.2.1",
+    "sinon": "^7.5.0",
+    "ts-node": "^8.4.1",
+    "tslint": "^5.20.0"
   }
 }
