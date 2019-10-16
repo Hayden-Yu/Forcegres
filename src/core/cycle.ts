@@ -6,9 +6,7 @@ const WAIT_TIME = 6000
 
 export function cycle() {
   return listTables()
-  .then(list => list.reduce((promise, name) => promise.then(() => {
-    return promise.then(() => synchronizeSobject(name))
-  }), Promise.resolve()))
+  .then(list => list.reduce((promise, name) => promise.then(() => synchronizeSobject(name)), Promise.resolve()))
   .then(() => logger.info(`API Usage: ${salesforce.client.limitInfo}`))
 }
 

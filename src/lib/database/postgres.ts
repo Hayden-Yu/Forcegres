@@ -77,12 +77,12 @@ export class Postgres {
       this.logger.info('begin transaction');
       await transaction(new Connection(conn, this.logger));
       this.logger.info('commit transaction');
-      await this.query('COMMIT');
+      await conn.query('COMMIT');
       task.resolve();
     } catch (err) {
       this.logger.error(err);
       this.logger.info('rollback transaction');
-      await this.query('ROLLBACK');
+      await conn.query('ROLLBACK');
       task.reject(err);
     } finally {
       await conn.release();
@@ -97,8 +97,6 @@ export class Postgres {
     if (this.MAX_POOL_SIZE > this.activeWorker) {
       const task = this.queue.shift();
       if (task) {
-        this.logger.debug(`processed ${this.count++} queries`)
-        this.logger.debug(`memory usage: ${process.memoryUsage().heapUsed}`)
         this.logger.silly(`picked up pg query`);
         try {
           ++this.activeWorker;
