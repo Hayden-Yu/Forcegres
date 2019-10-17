@@ -10,6 +10,7 @@ import { Query, Connection } from '../lib/database/postgres';
 
 const SOQL_SIZE = 14000;
 const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
+const WINDOW_OVERLAP = 90; // number of seconds overlap between each window when query Salesforce for updated records.
 
 export function loadSobjectList() {
   return sf.sobject.listAll()
@@ -71,7 +72,7 @@ export function listTables(): Promise<string[]> {
 }
 
 async function loadUpdates(name: string, start: string, end: string, conn: Connection) {
-  const changes = await sf.sobject.recentUpdted(name, start, end);
+  const changes = await sf.sobject.recentUpdted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
   if (!changes.ids || !changes.ids.length) {
     return;
   }
@@ -99,7 +100,7 @@ function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending
 }
 
 async function loadDeletes(name: string, start: string, end: string, conn: Connection) {
-  const deletes = await sf.sobject.recentDeleted(name, start, end);
+  const deletes = await sf.sobject.recentDeleted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
   if (!deletes.deletedRecords || !deletes.deletedRecords.length) {
     return;
   }
