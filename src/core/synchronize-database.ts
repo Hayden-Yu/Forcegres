@@ -103,7 +103,7 @@ async function loadDeletes(name: string, start: string, end: string, conn: Conne
   if (!deletes.deletedRecords || !deletes.deletedRecords.length) {
     return;
   }
-  logger.info(`Found ${deletes.deletedRecords.length} updates on ${name}`);
+  logger.info(`Found ${deletes.deletedRecords.length} deletes on ${name}`);
   await conn.query(translateQry.deleteRecords(name, deletes.deletedRecords));
   logger.debug(`deleted ${deletes.deletedRecords.length} records from ${name}`);
   return;
