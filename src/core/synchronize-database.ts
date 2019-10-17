@@ -9,6 +9,7 @@ import { logger } from "../config/logger";
 import { Query, Connection } from '../lib/database/postgres';
 
 const SOQL_SIZE = 14000;
+const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
 
 export function loadSobjectList() {
   return sf.sobject.listAll()
@@ -23,7 +24,16 @@ export function initalizeDatabase() {
 
 export async function synchronizeSobject(name: string) {
   const lastSync = await findLastSyncDate(name, db.query.bind(db));
-  return lastSync ? loadIncremental(name, lastSync) : loadScratch(name);
+  if (!lastSync) {
+    return loadScratch(name);
+  } else {
+    const timeDiffSinceLastSync = -moment(lastSync).diff(Date(), 'seconds');
+    if (MIN_SYNC_WINDOW > timeDiffSinceLastSync) {
+      logger.silly(`wait ${MIN_SYNC_WINDOW-timeDiffSinceLastSync}s before next sync`);
+      await wait((MIN_SYNC_WINDOW-timeDiffSinceLastSync) * 1000);
+    }
+    return loadIncremental(name, lastSync);
+  }
 }
 
 export async function loadScratch(name: string) {
@@ -47,6 +57,7 @@ export async function loadIncremental(name: string, start?: string) {
   const end = (new Date()).toISOString();
 
   return db.transact(async conn => {
+    logger.debug(`Query recent updates on ${name}`);
     start = start || await findLastSyncDate(name, conn.query.bind(conn));
     await conn.query(translateQry.logSyncHistory(name, end, start));
     await loadUpdates(name, start, end, conn);
@@ -121,4 +132,8 @@ function findLastSyncDate(name: string, query: Query): Promise<string> {
 function findExistingColumns(name: string, query: Query) {
   return query(translateQry.findExistingColumns(name))
     .then(res => res.rows.map(el => el['column_name']));
+}
+
+function wait(millisec: number) {
+  return new Promise((resolve) => setTimeout(resolve, millisec))
 }

@@ -10,6 +10,3 @@ export function cycle() {
   .then(() => logger.info(`API Usage: ${salesforce.client.limitInfo}`))
 }
 
-function wait(millisec: number) {
-  return new Promise((resolve) => setTimeout(resolve, millisec))
-}

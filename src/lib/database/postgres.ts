@@ -74,9 +74,9 @@ export class Postgres {
     const conn = await this.client.connect();
     try {
       await conn.query('BEGIN');
-      this.logger.info('begin transaction');
+      this.logger.debug('begin transaction');
       await transaction(new Connection(conn, this.logger));
-      this.logger.info('commit transaction');
+      this.logger.debug('commit transaction');
       await conn.query('COMMIT');
       task.resolve();
     } catch (err) {
