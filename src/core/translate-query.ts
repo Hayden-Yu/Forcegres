@@ -89,8 +89,8 @@ export function setUpdateDetail(objectName: string, endDate: string, updateCount
 //   return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;
 // }
 
-export function loadLastSync(name: string): string {
-  return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY enddate DESC LIMIT 1;`;
+export function loadSyncHistory(name: string): string {
+  return `SELECT enddate, updates, deletes FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' AND enddate > now() at time zone 'utc'-interval '30 days - 1 hour' ORDER BY enddate DESC;`;
 }
 
 export function listTables(): string {

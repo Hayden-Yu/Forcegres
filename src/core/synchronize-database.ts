@@ -127,8 +127,11 @@ async function loadChunkData(schema: DescribeSObjectResult, records: any[], quer
 }
 
 function findLastSyncDate(name: string, query: Query): Promise<string> {
-  return query(translateQry.loadLastSync(name))
-    .then(res => res.rows[0] && res.rows[0].enddate ? moment.tz(res.rows[0].enddate, 'UTC').toISOString() : '');
+  return query(translateQry.loadSyncHistory(name))
+    .then(res => {
+      const lastUpdate = res.rows.find(e => e.updates || e.deletes);
+      return res.rows.length ? (moment.tz(lastUpdate ? lastUpdate.enddate : res.rows[res.rows.length-1].enddate, 'UTC').toISOString()) : '';
+    });
 }
 
 function findExistingColumns(name: string, query: Query) {
