@@ -49,8 +49,8 @@ export async function loadScratch(name: string) {
     schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
     await conn.query(translateQry.logSyncHistory(name, date));
     const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
-    await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))])
-    await conn.query(translateQry.closeSyncHistory(name, date));
+    await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))]);
+    await conn.query(translateQry.setUpdateDetail(name, date, init.totalSize, 0));
   });
 }
 
@@ -63,7 +63,6 @@ export async function loadIncremental(name: string, start?: string) {
     await conn.query(translateQry.logSyncHistory(name, end, start));
     await loadUpdates(name, start, end, conn);
     await loadDeletes(name, start, end, conn);
-    await conn.query(translateQry.closeSyncHistory(name, end));
   })
 }
 
@@ -85,7 +84,8 @@ async function loadUpdates(name: string, start: string, end: string, conn: Conne
   logger.info(`Found ${changes.ids.length} updates on ${schema.name}`);
   const chunkSize = Math.floor((SOQL_SIZE-(encodeURI(soql).length+24))/25);
   await loadUpdatesByChunk(soql, schema, changes.ids, chunkSize, [], conn);
-  logger.info(`Finished synchronizing [${schema.name}]`);
+  await conn.query(translateQry.setUpdateDetail(name, end, changes.ids.length));
+  logger.info(`updated ${changes.ids.length} records from [${schema.name}]`);
 }
 
 function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending: string[], chunkSize: number, acc: Promise<void>[], conn: Connection): Promise<void>[] {
@@ -106,7 +106,8 @@ async function loadDeletes(name: string, start: string, end: string, conn: Conne
   }
   logger.info(`Found ${deletes.deletedRecords.length} deletes on ${name}`);
   await conn.query(translateQry.deleteRecords(name, deletes.deletedRecords));
-  logger.debug(`deleted ${deletes.deletedRecords.length} records from ${name}`);
+  await conn.query(translateQry.setUpdateDetail(name, end, undefined, deletes.deletedRecords.length));
+  logger.debug(`deleted ${deletes.deletedRecords.length} records from [${name}]`);
   return;
 }
 

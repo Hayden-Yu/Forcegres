@@ -74,12 +74,20 @@ export function deleteRecords(name: string, deleted: DeletedRecord[]): string {
 }
 
 export function logSyncHistory(name: string, to: string, from?: string): string {
-  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,finished) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',false);`;
+  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,updates,deletes) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',0,0);`;
 }
 
-export function closeSyncHistory(name: string, to: string): string {
-  return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;
+export function setUpdateDetail(objectName: string, endDate: string, updateCount?: number, deleteCount?: number) {
+  if (!updateCount && !deleteCount) {
+    return '';
+  }
+  return `UPDATE ${SCHEMA}.internal_syncHistory SET ` + 
+    (updateCount ? `updates=${updateCount} ${deleteCount ? `, deletes=${deleteCount}` : ''}` : `deletes=${deleteCount} `) +
+    `WHERE objectName=${objectName} AND enddate=${endDate}`;
 }
+// export function closeSyncHistory(name: string, to: string): string {
+//   return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;
+// }
 
 export function loadLastSync(name: string): string {
   return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY enddate DESC LIMIT 1;`;

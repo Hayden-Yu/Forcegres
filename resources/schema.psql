@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_syncHistory (
   objectName TEXT REFERENCES __SCHEMA__.internal_sobjects(objectName),
   fromdate TIMESTAMP,
   enddate TIMESTAMP,
-  finished BOOLEAN DEFAULT false,
+  updates INTEGER,
+  deletes INTEGER
   PRIMARY KEY (id)
 );
 
