@@ -83,7 +83,7 @@ export function setUpdateDetail(objectName: string, endDate: string, updateCount
   }
   return `UPDATE ${SCHEMA}.internal_syncHistory SET ` + 
     (updateCount ? `updates=${updateCount} ${deleteCount ? `, deletes=${deleteCount}` : ''}` : `deletes=${deleteCount} `) +
-    `WHERE objectName=${objectName} AND enddate=${endDate}`;
+    `WHERE objectName='${objectName}' AND enddate='${endDate}'`;
 }
 // export function closeSyncHistory(name: string, to: string): string {
 //   return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;

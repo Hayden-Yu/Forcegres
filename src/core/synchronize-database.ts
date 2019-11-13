@@ -7,10 +7,11 @@ import * as translateQry from './translate-query';
 import { DescribeSObjectResult } from 'jsforce';
 import { logger } from "../config/logger";
 import { Query, Connection } from '../lib/database/postgres';
+import { parseInit, parseMore } from '../lib/parse-csv';
 
 const SOQL_SIZE = 14000;
 const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
-const WINDOW_OVERLAP = 90; // number of seconds overlap between each window when query Salesforce for updated records.
+const PARSE_CSV_BATCH_SIZE = 100;
 
 export function loadSobjectList() {
   return sf.sobject.listAll()
@@ -28,7 +29,7 @@ export async function synchronizeSobject(name: string) {
   if (!lastSync) {
     return loadScratch(name);
   } else {
-    const timeDiffSinceLastSync = -moment(lastSync).diff(Date(), 'seconds');
+    const timeDiffSinceLastSync = -moment(lastSync).diff(moment(), 'seconds');
     if (MIN_SYNC_WINDOW > timeDiffSinceLastSync) {
       logger.silly(`wait ${MIN_SYNC_WINDOW-timeDiffSinceLastSync}s before next sync`);
       await wait((MIN_SYNC_WINDOW-timeDiffSinceLastSync) * 1000);
@@ -43,14 +44,16 @@ export async function loadScratch(name: string) {
 
   return db.transact(async conn => {
     logger.info(`initialize postgres table ${schema.name}`);
-    await conn.query(translateQry.createSobjectTable(schema));
-
-    const fields = await findExistingColumns(schema.name, conn.query.bind(conn));
-    schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
     await conn.query(translateQry.logSyncHistory(name, date));
-    const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
-    await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))]);
-    await conn.query(translateQry.setUpdateDetail(name, date, init.totalSize, 0));
+    const sfQuery = (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)));
+    await conn.query(translateQry.createSobjectTable(schema));
+    let parseCsv = parseInit(sfQuery.result as string, {batchSize: PARSE_CSV_BATCH_SIZE, toObject: true});
+    await conn.query(translateQry.loadData(parseCsv.result, schema));
+    while(parseCsv.proc.remain) {
+      parseCsv = parseMore(parseCsv.proc);
+      await conn.query(translateQry.loadData(parseCsv.result, schema));
+    }
+    await conn.query(translateQry.setUpdateDetail(name, date, sfQuery.numberRecordsProcessed, 0));
   });
 }
 
@@ -71,7 +74,7 @@ export function listTables(): Promise<string[]> {
 }
 
 async function loadUpdates(name: string, start: string, end: string, conn: Connection) {
-  const changes = await sf.sobject.recentUpdted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
+  const changes = await sf.sobject.recentUpdted(name, moment(start).toISOString(), end);
   if (!changes.ids || !changes.ids.length) {
     return;
   }
