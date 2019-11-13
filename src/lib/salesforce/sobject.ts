@@ -54,9 +54,9 @@ export class Sobject {
     return date.getUTCFullYear() +
     '-' + `${date.getUTCMonth() + 1}`.padStart(2, '0') +
     '-' + `${date.getUTCDate()}`.padStart(2, '0') +
-    'T' + `${date.getUTCHours() + 1}`.padStart(2, '0') +
-    ':' + `${date.getUTCMinutes() + 1}`.padStart(2, '0') +
-    ':' + `${date.getUTCSeconds() + 1}`.padStart(2, '0') +
-    'Z';
+    'T' + `${date.getUTCHours() }`.padStart(2, '0') +
+    ':' + `${date.getUTCMinutes()}`.padStart(2, '0') +
+    ':' + `${date.getUTCSeconds()}`.padStart(2, '0') +
+    '+00:00';
   }
 }
