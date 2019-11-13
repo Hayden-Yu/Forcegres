@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_syncHistory (
   fromdate TIMESTAMP,
   enddate TIMESTAMP,
   updates INTEGER,
-  deletes INTEGER
+  deletes INTEGER,
   PRIMARY KEY (id)
 );
 
