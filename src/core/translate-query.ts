@@ -106,19 +106,30 @@ function getRecordSqlValue(record: any, field: Field): string {
     return `'${value.substring(0, 15)}'`;
   }
   const sqlType = soapToPostgresTypeMapping.get(field.soapType) || 'TEXT';
+
+  if (value === '' && (
+    sqlType === 'BOOLEAN' ||
+    sqlType === 'DATE' ||
+    sqlType === 'TIMESTAMP' ||
+    sqlType === 'TIME' ||
+    sqlType === 'FLOAT' ||
+    sqlType === 'INTEGER')) { // empty value in csv file
+      return 'null';
+  }
+
   if (sqlType === 'TEXT' 
     || sqlType === 'DATE' 
     || sqlType === 'TIMESTAMP'
     || sqlType === 'TIME'
     || sqlType.indexOf('CHAR') !== -1) {
       if (typeof value === 'object') { 
-        // some fields returns JSON but decribe as string e.g. Account.ShippingAddress
+        // Compound fields returns JSON but decribe as string e.g. Account.ShippingAddress
         value = JSON.stringify(value);
       }
-      if (sqlType === 'TIME' && value) {
+      if (sqlType === 'TIME') {
         value = value.replace(/^(.*)Z$/, '$1');
       }
-      if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
+      if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP')) {
         if (/^0000-.*/.test(value)) {
           value = '-infinity';
         } else if (/^9999-.*/.test(value)) {

@@ -8,6 +8,7 @@ import { DescribeSObjectResult } from 'jsforce';
 import { logger } from "../config/logger";
 import { Query, Connection } from '../lib/database/postgres';
 import { parseInit, parseMore } from '../lib/parse-csv';
+import { BulkQueryResult } from '../lib/salesforce/soql';
 
 const SOQL_SIZE = 14000;
 const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
@@ -45,15 +46,28 @@ export async function loadScratch(name: string) {
   return db.transact(async conn => {
     logger.info(`initialize postgres table ${schema.name}`);
     await conn.query(translateQry.logSyncHistory(name, date));
-    const sfQuery = (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)));
     await conn.query(translateQry.createSobjectTable(schema));
-    let parseCsv = parseInit(sfQuery.result as string, {batchSize: PARSE_CSV_BATCH_SIZE, toObject: true});
-    await conn.query(translateQry.loadData(parseCsv.result, schema));
-    while(parseCsv.proc.remain) {
-      parseCsv = parseMore(parseCsv.proc);
-      await conn.query(translateQry.loadData(parseCsv.result, schema));
+
+    let sfQuery: BulkQueryResult | undefined;
+    try {
+      (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)))
+    } catch (err) {
+      logger.error(err);
     }
-    await conn.query(translateQry.setUpdateDetail(name, date, sfQuery.numberRecordsProcessed, 0));
+    if (sfQuery) {
+      let parseCsv = parseInit(sfQuery.result as string, {batchSize: PARSE_CSV_BATCH_SIZE, toObject: true});
+      await conn.query(translateQry.loadData(parseCsv.result, schema));
+      while(parseCsv.proc.remain) {
+        parseCsv = parseMore(parseCsv.proc);
+        await conn.query(translateQry.loadData(parseCsv.result, schema));
+      }
+      await conn.query(translateQry.setUpdateDetail(name, date, sfQuery.numberRecordsProcessed, 0));
+    } else {
+      logger.info(`fallback to query api for [${name}]`);
+      const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
+      await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))])
+      await conn.query(translateQry.setUpdateDetail(name, date, init.totalSize));
+    }
   });
 }
 
@@ -103,7 +117,7 @@ function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending
 }
 
 async function loadDeletes(name: string, start: string, end: string, conn: Connection) {
-  const deletes = await sf.sobject.recentDeleted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
+  const deletes = await sf.sobject.recentDeleted(name, moment(start).toISOString(), end);
   if (!deletes.deletedRecords || !deletes.deletedRecords.length) {
     return;
   }
