@@ -25,7 +25,7 @@ export class ApiClient {
     this.username = config.username;
     this.password = config.password + (config.securityToken || '');
     this.loginUrl = config.loginUrl || 'https://login.salesforce.com/';
-    this._version = config.version || 'v46.0';
+    this._version = config.version || 'v47.0';
     this.logger = logger || loggerPlaceHolder;
   }
 

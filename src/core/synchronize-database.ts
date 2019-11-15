@@ -7,10 +7,12 @@ import * as translateQry from './translate-query';
 import { DescribeSObjectResult } from 'jsforce';
 import { logger } from "../config/logger";
 import { Query, Connection } from '../lib/database/postgres';
+import { parseInit, parseMore } from '../lib/parse-csv';
+import { BulkQueryResult } from '../lib/salesforce/soql';
 
 const SOQL_SIZE = 14000;
 const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
-const WINDOW_OVERLAP = 90; // number of seconds overlap between each window when query Salesforce for updated records.
+const PARSE_CSV_BATCH_SIZE = 100;
 
 export function loadSobjectList() {
   return sf.sobject.listAll()
@@ -28,7 +30,7 @@ export async function synchronizeSobject(name: string) {
   if (!lastSync) {
     return loadScratch(name);
   } else {
-    const timeDiffSinceLastSync = -moment(lastSync).diff(Date(), 'seconds');
+    const timeDiffSinceLastSync = -moment(lastSync).diff(moment(), 'seconds');
     if (MIN_SYNC_WINDOW > timeDiffSinceLastSync) {
       logger.silly(`wait ${MIN_SYNC_WINDOW-timeDiffSinceLastSync}s before next sync`);
       await wait((MIN_SYNC_WINDOW-timeDiffSinceLastSync) * 1000);
@@ -43,14 +45,32 @@ export async function loadScratch(name: string) {
 
   return db.transact(async conn => {
     logger.info(`initialize postgres table ${schema.name}`);
+    await conn.query(translateQry.logSyncHistory(name, date));
     await conn.query(translateQry.createSobjectTable(schema));
 
-    const fields = await findExistingColumns(schema.name, conn.query.bind(conn));
-    schema.fields = schema.fields.filter(f => fields.indexOf(f.name.toLowerCase()) !== -1);
-    await conn.query(translateQry.logSyncHistory(name, date));
-    const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
-    await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))])
-    await conn.query(translateQry.closeSyncHistory(name, date));
+    let sfQuery: BulkQueryResult | undefined;
+    try {
+      sfQuery = (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)))
+    } catch (err) {
+      logger.error(err);
+    }
+    if (sfQuery) {
+      logger.info(`downloaded ${sfQuery.numberRecordsProcessed} records for ${name}`);
+      let parseCsv = parseInit(sfQuery.result as string, {batchSize: PARSE_CSV_BATCH_SIZE, toObject: true});
+      await conn.query(translateQry.loadData(parseCsv.result, schema));
+      while(parseCsv.proc.remain) {
+        parseCsv = parseMore(parseCsv.proc);
+        await conn.query(translateQry.loadData(parseCsv.result, schema));
+      }
+      await conn.query(translateQry.setUpdateDetail(name, date, sfQuery.numberRecordsProcessed, 0));
+      logger.info(`finished initial sync [${name}] with ${sfQuery.numberRecordsProcessed} records`);
+    } else {
+      logger.info(`fallback to query api for [${name}]`);
+      const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
+      await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))])
+      await conn.query(translateQry.setUpdateDetail(name, date, init.totalSize));
+      logger.info(`finished initial sync [${name}] with ${init.totalSize} records`);
+    }
   });
 }
 
@@ -63,7 +83,6 @@ export async function loadIncremental(name: string, start?: string) {
     await conn.query(translateQry.logSyncHistory(name, end, start));
     await loadUpdates(name, start, end, conn);
     await loadDeletes(name, start, end, conn);
-    await conn.query(translateQry.closeSyncHistory(name, end));
   })
 }
 
@@ -72,7 +91,7 @@ export function listTables(): Promise<string[]> {
 }
 
 async function loadUpdates(name: string, start: string, end: string, conn: Connection) {
-  const changes = await sf.sobject.recentUpdted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
+  const changes = await sf.sobject.recentUpdted(name, moment(start).toISOString(), end);
   if (!changes.ids || !changes.ids.length) {
     return;
   }
@@ -85,7 +104,8 @@ async function loadUpdates(name: string, start: string, end: string, conn: Conne
   logger.info(`Found ${changes.ids.length} updates on ${schema.name}`);
   const chunkSize = Math.floor((SOQL_SIZE-(encodeURI(soql).length+24))/25);
   await loadUpdatesByChunk(soql, schema, changes.ids, chunkSize, [], conn);
-  logger.info(`Finished synchronizing [${schema.name}]`);
+  await conn.query(translateQry.setUpdateDetail(name, end, changes.ids.length));
+  logger.info(`updated ${changes.ids.length} records from [${schema.name}]`);
 }
 
 function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending: string[], chunkSize: number, acc: Promise<void>[], conn: Connection): Promise<void>[] {
@@ -100,13 +120,14 @@ function loadUpdatesByChunk(soql: string, schema: DescribeSObjectResult, pending
 }
 
 async function loadDeletes(name: string, start: string, end: string, conn: Connection) {
-  const deletes = await sf.sobject.recentDeleted(name, moment(start).subtract(WINDOW_OVERLAP, 's').toISOString(), end);
+  const deletes = await sf.sobject.recentDeleted(name, moment(start).toISOString(), end);
   if (!deletes.deletedRecords || !deletes.deletedRecords.length) {
     return;
   }
   logger.info(`Found ${deletes.deletedRecords.length} deletes on ${name}`);
   await conn.query(translateQry.deleteRecords(name, deletes.deletedRecords));
-  logger.debug(`deleted ${deletes.deletedRecords.length} records from ${name}`);
+  await conn.query(translateQry.setUpdateDetail(name, end, undefined, deletes.deletedRecords.length));
+  logger.debug(`deleted ${deletes.deletedRecords.length} records from [${name}]`);
   return;
 }
 
@@ -126,8 +147,11 @@ async function loadChunkData(schema: DescribeSObjectResult, records: any[], quer
 }
 
 function findLastSyncDate(name: string, query: Query): Promise<string> {
-  return query(translateQry.loadLastSync(name))
-    .then(res => res.rows[0] && res.rows[0].enddate ? moment.tz(res.rows[0].enddate, 'UTC').toISOString() : '');
+  return query(translateQry.loadSyncHistory(name))
+    .then(res => {
+      const lastUpdate = res.rows.find(e => e.updates || e.deletes);
+      return res.rows.length ? (moment.tz(lastUpdate ? lastUpdate.enddate : res.rows[res.rows.length-1].enddate, 'UTC').toISOString()) : '';
+    });
 }
 
 function findExistingColumns(name: string, query: Query) {

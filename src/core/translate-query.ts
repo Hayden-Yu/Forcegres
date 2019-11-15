@@ -74,15 +74,23 @@ export function deleteRecords(name: string, deleted: DeletedRecord[]): string {
 }
 
 export function logSyncHistory(name: string, to: string, from?: string): string {
-  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,finished) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',false);`;
+  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,updates,deletes) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',0,0);`;
 }
 
-export function closeSyncHistory(name: string, to: string): string {
-  return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;
+export function setUpdateDetail(objectName: string, endDate: string, updateCount?: number, deleteCount?: number) {
+  if (!updateCount && !deleteCount) {
+    return '';
+  }
+  return `UPDATE ${SCHEMA}.internal_syncHistory SET ` + 
+    (updateCount ? `updates=${updateCount} ${deleteCount ? `, deletes=${deleteCount}` : ''}` : `deletes=${deleteCount} `) +
+    `WHERE objectName='${objectName}' AND enddate='${endDate}'`;
 }
+// export function closeSyncHistory(name: string, to: string): string {
+//   return `UPDATE ${SCHEMA}.internal_syncHistory SET finished=true WHERE objectName='${name}' AND enddate='${to}'`;
+// }
 
-export function loadLastSync(name: string): string {
-  return `SELECT enddate FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' ORDER BY enddate DESC LIMIT 1;`;
+export function loadSyncHistory(name: string): string {
+  return `SELECT enddate, updates, deletes FROM ${SCHEMA}.internal_syncHistory WHERE objectName='${name}' AND enddate > now() at time zone 'utc'-interval '30 days - 1 hour' ORDER BY enddate DESC;`;
 }
 
 export function listTables(): string {
@@ -98,19 +106,30 @@ function getRecordSqlValue(record: any, field: Field): string {
     return `'${value.substring(0, 15)}'`;
   }
   const sqlType = soapToPostgresTypeMapping.get(field.soapType) || 'TEXT';
+
+  if (value === '' && (
+    sqlType === 'BOOLEAN' ||
+    sqlType === 'DATE' ||
+    sqlType === 'TIMESTAMP' ||
+    sqlType === 'TIME' ||
+    sqlType === 'FLOAT' ||
+    sqlType === 'INTEGER')) { // empty value in csv file
+      return 'null';
+  }
+
   if (sqlType === 'TEXT' 
     || sqlType === 'DATE' 
     || sqlType === 'TIMESTAMP'
     || sqlType === 'TIME'
     || sqlType.indexOf('CHAR') !== -1) {
       if (typeof value === 'object') { 
-        // some fields returns JSON but decribe as string e.g. Account.ShippingAddress
+        // Compound fields returns JSON but decribe as string e.g. Account.ShippingAddress
         value = JSON.stringify(value);
       }
-      if (sqlType === 'TIME' && value) {
+      if (sqlType === 'TIME') {
         value = value.replace(/^(.*)Z$/, '$1');
       }
-      if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP') && value) {
+      if ((sqlType === 'TIME' || sqlType === 'TIMESTAMP')) {
         if (/^0000-.*/.test(value)) {
           value = '-infinity';
         } else if (/^9999-.*/.test(value)) {

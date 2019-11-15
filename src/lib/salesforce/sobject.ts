@@ -18,11 +18,24 @@ export class Sobject {
     }).then(res => JSON.parse(res.body))
   }
 
-  describe(name: string): Promise<DescribeSObjectResult> {
+  describe(name: string, ignoreCompoundField = true): Promise<DescribeSObjectResult> {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/sobjects/${name}/describe`,
-    }).then(res => JSON.parse(res.body))
+    })
+    .then(res => JSON.parse(res.body))
+    .then((schema: DescribeSObjectResult) => {
+      if (ignoreCompoundField) {
+        const compoundFields = new Set();
+        schema.fields.forEach(f=> {
+          if (f.compoundFieldName) {
+            compoundFields.add(f.compoundFieldName);
+          }
+        });
+        schema.fields = schema.fields.filter(f => !compoundFields.has(f.name));
+      }
+      return schema;
+    })
   }
 
   recentUpdted(name: string, strat: string, end: string): Promise<UpdatedRecordsInfo> {
@@ -54,9 +67,9 @@ export class Sobject {
     return date.getUTCFullYear() +
     '-' + `${date.getUTCMonth() + 1}`.padStart(2, '0') +
     '-' + `${date.getUTCDate()}`.padStart(2, '0') +
-    'T' + `${date.getUTCHours() + 1}`.padStart(2, '0') +
-    ':' + `${date.getUTCMinutes() + 1}`.padStart(2, '0') +
-    ':' + `${date.getUTCSeconds() + 1}`.padStart(2, '0') +
-    'Z';
+    'T' + `${date.getUTCHours() }`.padStart(2, '0') +
+    ':' + `${date.getUTCMinutes()}`.padStart(2, '0') +
+    ':' + `${date.getUTCSeconds()}`.padStart(2, '0') +
+    '+00:00';
   }
 }
