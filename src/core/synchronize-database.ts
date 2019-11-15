@@ -55,6 +55,7 @@ export async function loadScratch(name: string) {
       logger.error(err);
     }
     if (sfQuery) {
+      logger.info(`downloaded ${sfQuery.numberRecordsProcessed} records for ${name}`);
       let parseCsv = parseInit(sfQuery.result as string, {batchSize: PARSE_CSV_BATCH_SIZE, toObject: true});
       await conn.query(translateQry.loadData(parseCsv.result, schema));
       while(parseCsv.proc.remain) {
@@ -62,11 +63,13 @@ export async function loadScratch(name: string) {
         await conn.query(translateQry.loadData(parseCsv.result, schema));
       }
       await conn.query(translateQry.setUpdateDetail(name, date, sfQuery.numberRecordsProcessed, 0));
+      logger.info(`finished initial sync [${name}] with ${sfQuery.numberRecordsProcessed} records`);
     } else {
       logger.info(`fallback to query api for [${name}]`);
       const init = await sf.soql.query(await sf.sobject.selectStar(name, undefined, schema.fields));
       await Promise.all([loadChunkData(schema, init.records, conn.query.bind(conn)), loadDataFollowUp(schema, init.nextRecordsUrl, conn.query.bind(conn))])
       await conn.query(translateQry.setUpdateDetail(name, date, init.totalSize));
+      logger.info(`finished initial sync [${name}] with ${init.totalSize} records`);
     }
   });
 }
