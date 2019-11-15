@@ -1,6 +1,6 @@
 {
   "name": "forcegres",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Salesforce to SQL data sync",
   "main": "index.js",
   "scripts": {
