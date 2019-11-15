@@ -50,7 +50,7 @@ export async function loadScratch(name: string) {
 
     let sfQuery: BulkQueryResult | undefined;
     try {
-      (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)))
+      sfQuery = (await sf.soql.bulkQuery(await sf.sobject.selectStar(name, undefined, schema.fields)))
     } catch (err) {
       logger.error(err);
     }
