@@ -70,6 +70,6 @@ export class Sobject {
     'T' + `${date.getUTCHours() }`.padStart(2, '0') +
     ':' + `${date.getUTCMinutes()}`.padStart(2, '0') +
     ':' + `${date.getUTCSeconds()}`.padStart(2, '0') +
-    '+00:00';
+    'Z';
   }
 }
