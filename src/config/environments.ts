@@ -24,5 +24,6 @@ export const environments = {
   logger: {
     logLevel: process.env.LOG_LEVEL || 'info',
     fileName: process.env.LOG_FILENAME
-  }
+  },
+  minSyncWindow: Number(process.env.MIN_SYNC_WINDOW) || 900,
 }
