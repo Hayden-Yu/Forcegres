@@ -12,5 +12,5 @@ export async function init() {
 }
 
 export function exec(): Promise<void> {
-  return cycle().then(()=>exec())
+  return cycle().then(exec)
 }
