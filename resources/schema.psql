@@ -36,12 +36,3 @@ CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_syncHistory (
   deletes INTEGER,
   PRIMARY KEY (id)
 );
-
-CREATE TABLE IF NOT EXISTS __SCHEMA__.internal_fieldIndex (
-  objectName TEXT REFERENCES __SCHEMA__.internal_sobjects(objectName),
-  fieldName TEXT [],
-  indexMethod TEXT DEFAULT 'btree',
-  ascend BOOLEAN DEFAULT true,
-  nullFirst BOOLEAN DEFAULT true,
-  PRIMARY KEY (objectName, fieldName)
-);

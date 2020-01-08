@@ -37,7 +37,7 @@ export class Soql {
       }
       return JSON.parse(res.body);
     }, err => {
-      if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
         this.logger.silly('retry soql after socket timeout')
         return this.queryMore(locator)
       }

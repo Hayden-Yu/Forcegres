@@ -9,9 +9,9 @@ import { logger } from "../config/logger";
 import { Query, Connection } from '../lib/database/postgres';
 import { parseInit, parseMore } from '../lib/parse-csv';
 import { BulkQueryResult } from '../lib/salesforce/soql';
+import { environments } from '../config/environments';
 
 const SOQL_SIZE = 14000;
-const MIN_SYNC_WINDOW = 180; // minimun number of seconds between each syncrhonization on the same object
 const PARSE_CSV_BATCH_SIZE = 100;
 
 export function loadSobjectList() {
@@ -31,9 +31,9 @@ export async function synchronizeSobject(name: string) {
     return loadScratch(name);
   } else {
     const timeDiffSinceLastSync = -moment(lastSync).diff(moment(), 'seconds');
-    if (MIN_SYNC_WINDOW > timeDiffSinceLastSync) {
-      logger.silly(`wait ${MIN_SYNC_WINDOW-timeDiffSinceLastSync}s before next sync`);
-      await wait((MIN_SYNC_WINDOW-timeDiffSinceLastSync) * 1000);
+    if (environments.minSyncWindow > timeDiffSinceLastSync) {
+      logger.silly(`wait ${environments.minSyncWindow-timeDiffSinceLastSync}s before next sync`);
+      await wait((environments.minSyncWindow-timeDiffSinceLastSync) * 1000);
     }
     return loadIncremental(name, lastSync);
   }
