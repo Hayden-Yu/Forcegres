@@ -1,24 +1,24 @@
-import { ApiClient } from "./api-client";
+import { ApiClient } from './api-client';
 import { DescribeGlobalResult, DescribeSObjectResult, UpdatedRecordsInfo, DeletedRecordsInfo, Field } from 'jsforce';
-import { Logger, loggerPlaceHolder } from "../Logger";
+import { Logger, loggerPlaceHolder } from '../Logger';
 
 export class Sobject {
-  client: ApiClient;
-  logger: Logger;
+  private client: ApiClient;
+  private logger: Logger;
 
   constructor(client: ApiClient, logger?: Logger) {
     this.client = client;
     this.logger = logger || loggerPlaceHolder;
   }
 
-  listAll(): Promise<DescribeGlobalResult> {
+  public listAll(): Promise<DescribeGlobalResult> {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/sobjects/`,
-    }).then(res => JSON.parse(res.body))
+    }).then(res => JSON.parse(res.body));
   }
 
-  describe(name: string, ignoreCompoundField = true): Promise<DescribeSObjectResult> {
+  public describe(name: string, ignoreCompoundField = true): Promise<DescribeSObjectResult> {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/sobjects/${name}/describe`,
@@ -27,7 +27,7 @@ export class Sobject {
     .then((schema: DescribeSObjectResult) => {
       if (ignoreCompoundField) {
         const compoundFields = new Set();
-        schema.fields.forEach(f=> {
+        schema.fields.forEach(f => {
           if (f.compoundFieldName) {
             compoundFields.add(f.compoundFieldName);
           }
@@ -35,34 +35,34 @@ export class Sobject {
         schema.fields = schema.fields.filter(f => !compoundFields.has(f.name));
       }
       return schema;
-    })
+    });
   }
 
-  recentUpdted(name: string, strat: string, end: string): Promise<UpdatedRecordsInfo> {
+  public recentUpdted(name: string, strat: string, end: string): Promise<UpdatedRecordsInfo> {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/sobjects/${name}/updated?start=${this.sfIsoDate(strat)}&end=${this.sfIsoDate(end)}`,
-    }).then(res => JSON.parse(res.body))
+    }).then(res => JSON.parse(res.body));
   }
 
-  recentDeleted(name: string, start: string, end: string): Promise<DeletedRecordsInfo> {
+  public recentDeleted(name: string, start: string, end: string): Promise<DeletedRecordsInfo> {
     return this.client.request({
       method: 'GET',
       url: `/services/data/${this.client.version}/sobjects/${name}/deleted?start=${this.sfIsoDate(start)}&end=${this.sfIsoDate(end)}`,
-    }).then(res => JSON.parse(res.body))
+    }).then(res => JSON.parse(res.body));
   }
 
-  async selectStar(name: string, where?: string, fields?: Field[]): Promise<string> {
+  public async selectStar(name: string, where?: string, fields?: Field[]): Promise<string> {
     if (!fields) {
       fields = (await this.describe(name)).fields;
     }
-    const q = `SELECT ${fields.map(f=>f.name).join(',')} FROM ${name}`
+    const q = `SELECT ${fields.map(f => f.name).join(',')} FROM ${name}`;
     return where ? q + where : q;
   }
 
   private sfIsoDate(date: string | Date) {
     if (typeof date === 'string') {
-      date = new Date(date)
+      date = new Date(date);
     }
     return date.getUTCFullYear() +
     '-' + `${date.getUTCMonth() + 1}`.padStart(2, '0') +

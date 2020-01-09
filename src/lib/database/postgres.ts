@@ -2,17 +2,17 @@ import { Pool, QueryResult, PoolConfig, types, ClientBase } from 'pg';
 import { Logger, loggerPlaceHolder } from '../Logger';
 import { EventEmitter } from 'events';
 
-types.setTypeParser(1114, value=>value);
+types.setTypeParser(1114, value => value);
 
 export class Postgres {
   private MAX_POOL_SIZE: number;
 
   private client: Pool;
-  private queue: QueryRequest[] = [];
+  private queue: IQueryRequest[] = [];
   private activeWorker = 0;
   private events = new EventEmitter();
   private logger: Logger;
-  
+
   constructor(config: PoolConfig, logger?: Logger) {
     this.client = new Pool(config);
     this.logger = logger || loggerPlaceHolder;
@@ -27,35 +27,35 @@ export class Postgres {
     });
   }
 
-  query(qryStr: string, values?: any[]): Promise<QueryResult> {
+  public query(qryStr: string, values?: any[]): Promise<QueryResult> {
     return new Promise((resolve, reject) => {
       this.queue.push({
         query: qryStr,
         params: values,
-        resolve: resolve,
-        reject: reject
+        resolve,
+        reject,
       });
       this.events.emit('enqueue');
     });
   }
 
-  transact(transaction: Transaction): Promise<void> {
+  public transact(transaction: Transaction): Promise<void> {
     return new Promise((resolve: () => void, reject) => {
       this.queue.push({
-        transaction: transaction,
-        resolve: resolve,
-        reject: reject
+        transaction,
+        resolve,
+        reject,
       });
       this.events.emit('enqueue');
     });
   }
 
-  disconnect() {
+  public disconnect() {
     this.logger.debug(`disconnecting pg pool with ${this.activeWorker} job running and ${this.queue.length} left in queue`);
     return this.client.end();
   }
 
-  _query(task: QueryRequest) {
+  private _query(task: IQueryRequest) {
     const query = task.query as string;
     this.client.query(query, task.params || [], (err, result) => {
       --this.activeWorker;
@@ -66,10 +66,10 @@ export class Postgres {
         return task.reject(err);
       }
       task.resolve(result);
-    })
+    });
   }
 
-  async _transact(task: QueryRequest) {
+  private async _transact(task: IQueryRequest) {
     const transaction = task.transaction as Transaction;
     const conn = await this.client.connect();
     try {
@@ -91,9 +91,8 @@ export class Postgres {
     }
   }
 
-  count = 0;
   private _dequeue() {
-    this.logger.silly('attempt dequeue')
+    this.logger.silly('attempt dequeue');
     if (this.MAX_POOL_SIZE > this.activeWorker) {
       const task = this.queue.shift();
       if (task) {
@@ -114,12 +113,12 @@ export class Postgres {
   }
 }
 
-export type QueryRequest = {
-  transaction?: Transaction,
-  query?: string,
-  params?: any[],
-  resolve: (value?: QueryResult | PromiseLike<QueryResult>) => void,
-  reject: (reason?: any) => void,
+export interface IQueryRequest {
+  transaction?: Transaction;
+  query?: string;
+  params?: any[];
+  resolve: (value?: QueryResult | PromiseLike<QueryResult>) => void;
+  reject: (reason?: any) => void;
 }
 
 export class Connection {
@@ -131,7 +130,7 @@ export class Connection {
     this.logger = logger;
   }
 
-  query(qryStr: string, values?: any[]): Promise<QueryResult> {
+  public query(qryStr: string, values?: any[]): Promise<QueryResult> {
     return new Promise((resolve, reject) => this.client.query(qryStr, values || [], (err, res) => {
       if (err) {
         this.logger.debug(qryStr);
@@ -139,9 +138,9 @@ export class Connection {
         return reject(err);
       }
       return resolve(res);
-    }))
+    }));
   }
 }
 
-export type Transaction = (conn: Connection) => Promise<void>
+export type Transaction = (conn: Connection) => Promise<void>;
 export type Query = (qry: string, values?: any[]) => Promise<QueryResult>;

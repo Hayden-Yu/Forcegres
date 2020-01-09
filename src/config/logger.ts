@@ -2,7 +2,7 @@ import { transports, createLogger, format } from 'winston';
 import { environments } from './environments';
 
 const config = {
-  level: (environments.logger && environments.logger.logLevel) ? environments.logger.logLevel: 'info',
+  level: (environments.logger && environments.logger.logLevel) ? environments.logger.logLevel : 'info',
   transports: [] as any[],
   format: format.combine(format.timestamp(), format.json()),
 };

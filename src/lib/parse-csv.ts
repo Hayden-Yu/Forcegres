@@ -1,31 +1,29 @@
-export function parseInit(csv: string, config: ParseConfig): ParseResult {
-  if (csv.charAt(csv.length-1) != '\n') {
+export function parseInit(csv: string, config: IParseConfig): IParseResult {
+  if (csv.charAt(csv.length - 1) !== '\n') {
     csv = csv + '\n';
   }
-  return parse(csv, config);  
+  return parse(csv, config);
 }
 
-export function parseMore(proc: ParseProcess): ParseResult {
-  return parse(proc.remain, proc.config, proc.headers)
+export function parseMore(proc: IParseProcess): IParseResult {
+  return parse(proc.remain, proc.config, proc.headers);
 }
 
-function parse(csv: string, config: ParseConfig, header?: string[]): ParseResult {
+function parse(csv: string, config: IParseConfig, header?: string[]): IParseResult {
   const delimiter = config.delimiter || ',';
   const lines = [];
   let fields = [];
   let curr = '';
   let quote = false;
-  let i = 0
+  let i = 0;
   for (; i < csv.length; i++) {
     const char = csv.charAt(i);
     if (char === '"') {
-      quote = !quote
-    }
-    else if (char === delimiter && !quote) {
+      quote = !quote;
+    } else if (char === delimiter && !quote) {
       fields.push(curr);
       curr = '';
-    }
-    else if (char === '\n' && !quote) {
+    } else if (char === '\n' && !quote) {
       fields.push(curr);
       curr = '';
       if (config.toObject) {
@@ -54,25 +52,25 @@ function parse(csv: string, config: ParseConfig, header?: string[]): ParseResult
     result: lines,
     proc: {
       headers: header,
-      remain: csv.slice(i+1),
-      config: config,
-    }
-  }
+      remain: csv.slice(i + 1),
+      config,
+    },
+  };
 }
 
-export type ParseConfig = {
-  delimiter?: string,
-  toObject?: boolean,
-  batchSize: number,
+export interface IParseConfig {
+  delimiter?: string;
+  toObject?: boolean;
+  batchSize: number;
 }
 
-export type ParseProcess = {
-  headers?: string[],
-  remain: string,
-  config: ParseConfig,
+export interface IParseProcess {
+  headers?: string[];
+  remain: string;
+  config: IParseConfig;
 }
 
-export type ParseResult = {
-  proc: ParseProcess,
-  result: any[],
+export interface IParseResult {
+  proc: IParseProcess;
+  result: any[];
 }

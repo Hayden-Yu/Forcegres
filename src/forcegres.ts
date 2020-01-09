@@ -1,4 +1,4 @@
-import { logger } from "./config/logger";
+import { logger } from './config/logger';
 import { initalizeDatabase, loadSobjectList } from './core/synchronize-database';
 import { cycle } from './core/cycle';
 
@@ -12,5 +12,5 @@ export async function init() {
 }
 
 export function exec(): Promise<void> {
-  return cycle().then(exec)
+  return cycle().then(exec);
 }
