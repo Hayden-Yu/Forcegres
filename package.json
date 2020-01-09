@@ -34,18 +34,20 @@
     "moment-timezone": "^0.5.27",
     "pg": "^7.12.1",
     "request": "^2.88.0",
-    "typescript": "^3.6.4",
+    "typescript": "^3.7.4",
     "winston": "^3.2.1"
   },
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/chai-as-promised": "^7.1.2",
     "@types/mocha": "^5.2.7",
+    "@types/nock": "^11.1.0",
     "@types/sinon": "^7.5.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "codelyzer": "^5.1.2",
     "mocha": "^6.2.1",
+    "nock": "^11.7.2",
     "sinon": "^7.5.0",
     "ts-node": "^8.4.1",
     "tslint": "^5.20.0"

@@ -1,4 +1,4 @@
-import sinon from 'sinon';
+import sinon, { SinonStubbedInstance } from 'sinon';
 import { Soql } from '../../../src/lib/salesforce/soql';
 import { ApiClient } from '../../../src/lib/salesforce/api-client';
 import request from 'request';
@@ -9,6 +9,8 @@ import { assert } from 'chai';
 chai.use(ChaiAsPromised);
 
 const API_VERSION = 'v46.0'
+const Sandbox = sinon.createSandbox()
+
 
 describe('Soql', () => {
   const query = 'SELECT+Id+FROM+Account'
@@ -37,20 +39,9 @@ describe('Soql', () => {
   }
 
   let timedOut = false;
-  let requestMethod = sinon.stub(ApiClient.prototype, 'request').callsFake((arg) => {
-    if (!timedOut && arg && (arg as any).url && (arg as any).url.endsWith(timeoutOnceLocator)) {
-      timedOut = true;
-      return Promise.reject(timeOutErr);
-    }
-    if (arg && (arg as any).url && ((arg as any).url.endsWith(errorQuery) || (arg as any).url.endsWith(errorLocator))) {
-      return Promise.resolve(fakeErrorResponse as any as request.Response);
-    }
-    return Promise.resolve({
-        body: JSON.stringify(fakeResponse)
-      } as any as request.Response)
-  })
   let apiClient: ApiClient
   let soql: Soql
+  let requestMethod: SinonStubbedInstance<any>;
 
   beforeEach(() => {
     apiClient = new ApiClient({
@@ -63,6 +54,23 @@ describe('Soql', () => {
       version: API_VERSION
     });
     soql = new Soql(apiClient);
+
+    requestMethod = Sandbox.stub(ApiClient.prototype, 'request').callsFake((arg) => {
+      if (!timedOut && arg && (arg as any).url && (arg as any).url.endsWith(timeoutOnceLocator)) {
+        timedOut = true;
+        return Promise.reject(timeOutErr);
+      }
+      if (arg && (arg as any).url && ((arg as any).url.endsWith(errorQuery) || (arg as any).url.endsWith(errorLocator))) {
+        return Promise.resolve(fakeErrorResponse as any as request.Response);
+      }
+      return Promise.resolve({
+          body: JSON.stringify(fakeResponse)
+        } as any as request.Response)
+    })
+  })
+
+  afterEach(() => {
+    Sandbox.restore()
   })
 
   it('should send query', async () => {
@@ -73,14 +81,14 @@ describe('Soql', () => {
 
   it('should send query locator', async () => {
     const res = await soql.queryMore(locator)
-    chai.assert((requestMethod.getCall(1).args[0] as any).url === locator, 'locator should send in url')
+    chai.assert((requestMethod.getCall(0).args[0] as any).url === locator, 'locator should send in url')
     chai.assert(JSON.stringify(res)===JSON.stringify(fakeResponse), 'response should be API response')
   })
 
   it('should timeout and retry on follow up query', async () => {
     const res = await soql.queryMore(timeoutOnceLocator)
-    chai.assert((requestMethod.getCall(2).args[0] as any).url === (requestMethod.getCall(3).args[0] as any).url
-           && (requestMethod.getCall(2).args[0] as any).url === timeoutOnceLocator, 'should retry on timeout');
+    chai.assert((requestMethod.getCall(0).args[0] as any).url === (requestMethod.getCall(1).args[0] as any).url
+           && (requestMethod.getCall(0).args[0] as any).url === timeoutOnceLocator, 'should retry on timeout');
     chai.assert(JSON.stringify(res)===JSON.stringify(fakeResponse), 'response should be successful API response')
   })
 
@@ -110,7 +118,7 @@ describe('Soql', () => {
    }
    const mockData = 'Id\nkajsdk'
 
-    requestMethod.callsFake(arg => {
+    requestMethod.callsFake((arg: any) => {
       if (arg.body && JSON.parse(arg.body).query
         && JSON.parse(arg.body).query === mockQuery) {
           return Promise.resolve({
@@ -134,3 +142,4 @@ describe('Soql', () => {
     assert(res.result === mockData, "should retrieve csv data")
   })
 })
+
