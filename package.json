@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && cp -r resources build/",
+    "docker": "docker-compose run app",
     "init": "node build/index.js init",
     "exec": "node build/index.js exec",
     "test": "mocha --require ts-node/register test/*.test.ts test/**/*.test.ts"

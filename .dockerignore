@@ -1,0 +1,11 @@
+mode_modules
+build
+.travis.yml
+.env.example
+test/*
+
+npm-debug.log
+.DS_Store
+Thumbs.db
+
+log.json
