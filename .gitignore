@@ -11,5 +11,5 @@ npm-debug.log
 .DS_Store
 Thumbs.db
 
-src/environments/environments.ts
 .env
+log.json
