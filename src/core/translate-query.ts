@@ -3,8 +3,8 @@ import { DescribeGlobalSObjectResult, DescribeSObjectResult, Field, DeletedRecor
 
 export function loadSobject(schema: DescribeGlobalSObjectResult[]): string {
   return schema.reduce((qry, el) => {
-    return qry + 
-    `INSERT INTO ${SCHEMA}.internal_sobjects 
+    return qry +
+    `INSERT INTO ${SCHEMA}.internal_sobjects
     (objectname,label,labelplural,layoutable,mergeable,mruenabled,queryable,
       replicateable,retrieveable,searchable,triggerable,undeletable,updateable,
       activateable,createable,custom,customsetting,deletable,deprecatedandhidden,
@@ -44,9 +44,9 @@ export function loadSobject(schema: DescribeGlobalSObjectResult[]): string {
 
 export function createSobjectTable(schema: DescribeSObjectResult): string {
   const fieldList: string[] = [];
-    schema.fields.forEach(field => 
-      fieldList.push(`"${field.name.toLowerCase()}" ${soapToPostgresTypeMapping.get(field.soapType)}`));
-      return `CREATE TABLE IF NOT EXISTS ${SCHEMA}."${schema.name.toLowerCase()}" 
+  schema.fields.forEach(field =>
+    fieldList.push(`"${field.name.toLowerCase()}" ${soapToPostgresTypeMapping.get(field.soapType)}`));
+  return `CREATE TABLE IF NOT EXISTS ${SCHEMA}."${schema.name.toLowerCase()}"
       (${fieldList.join(',')},PRIMARY KEY (Id));`;
 }
 
@@ -57,8 +57,8 @@ export function loadData(records: any[], schema: DescribeSObjectResult): string 
   const fields = schema.fields;
   const insert = `INSERT INTO ${SCHEMA}."${schema.name.toLowerCase()}" (${fields.map(f => `"${f.name.toLowerCase()}"`).join(',')}) VALUES `;
   return records.reduce((sql, record) => sql + `${insert} (${fields.map(field => getRecordSqlValue(record, field)).join(',')})
-    ON CONFLICT(Id) DO 
-    UPDATE SET ${fields.filter(f=>f.name!=='Id').map(f=> `"${f.name.toLowerCase()}"=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
+    ON CONFLICT(Id) DO
+    UPDATE SET ${fields.filter(f => f.name !== 'Id').map(f => `"${f.name.toLowerCase()}"=${getRecordSqlValue(record, f)}`).join(',')};`.replace(/\s+/g, ' '), '');
 }
 
 export function findExistingColumns(name: string): string {
@@ -66,23 +66,25 @@ export function findExistingColumns(name: string): string {
 }
 
 export function deleteRecords(name: string, deleted: DeletedRecord[]): string {
-  const tmpTableName = `tmp_delete_${name}_${deleted[0].id}`
+  const tmpTableName = `tmp_delete_${name}_${deleted[0].id}`;
   return `CREATE TEMPORARY TABLE ${tmpTableName} (Id TEXT PRIMARY KEY);` +
-    `INSERT INTO ${tmpTableName} (Id) VALUES ${deleted.map(d=>`('${d.id}')`).join(',')};` + 
+    `INSERT INTO ${tmpTableName} (Id) VALUES ${deleted.map(d => `('${d.id}')`).join(',')};` +
     `DELETE FROM ${SCHEMA}."${name.toLowerCase()}" USING ${tmpTableName} WHERE "${name.toLowerCase()}".Id = ${tmpTableName}.Id;` +
     `DROP TABLE ${tmpTableName};`;
 }
 
 export function logSyncHistory(name: string, to: string, from?: string): string {
-  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,updates,deletes) VALUES ('${name}',${from?`'${from}'`:'null'},'${to}',0,0);`;
+  return `INSERT INTO ${SCHEMA}.internal_syncHistory (objectName,fromdate,enddate,updates,deletes) VALUES ('${name}',${from ? `'${from}'` : 'null'},'${to}',0,0);`;
 }
 
 export function setUpdateDetail(objectName: string, endDate: string, updateCount?: number, deleteCount?: number) {
   if (!updateCount && !deleteCount) {
     return '';
   }
-  return `UPDATE ${SCHEMA}.internal_syncHistory SET ` + 
-    (updateCount ? `updates=${updateCount} ${deleteCount ? `, deletes=${deleteCount}` : ''}` : `deletes=${deleteCount} `) +
+  return `UPDATE ${SCHEMA}.internal_syncHistory SET ` +
+    (updateCount ?
+      `updates=${updateCount} ${deleteCount ? `, deletes=${deleteCount}` : ''}`
+      : `deletes=${deleteCount} `) +
     `WHERE objectName='${objectName}' AND enddate='${endDate}'`;
 }
 // export function closeSyncHistory(name: string, to: string): string {
@@ -117,12 +119,12 @@ function getRecordSqlValue(record: any, field: Field): string {
       return 'null';
   }
 
-  if (sqlType === 'TEXT' 
-    || sqlType === 'DATE' 
+  if (sqlType === 'TEXT'
+    || sqlType === 'DATE'
     || sqlType === 'TIMESTAMP'
     || sqlType === 'TIME'
     || sqlType.indexOf('CHAR') !== -1) {
-      if (typeof value === 'object') { 
+      if (typeof value === 'object') {
         // Compound fields returns JSON but decribe as string e.g. Account.ShippingAddress
         value = JSON.stringify(value);
       }
@@ -136,7 +138,7 @@ function getRecordSqlValue(record: any, field: Field): string {
           value = 'infinity';
         }
       }
-      return `'${`${value}`.replace(/'/g, '\'\'')}'`
+      return `'${`${value}`.replace(/'/g, '\'\'')}'`;
   }
   return value;
 }
@@ -160,4 +162,4 @@ const soapToPostgresTypeMapping = new Map([
   ['urn:RelationshipReferenceTo', 'TEXT'],
   ['urn:SearchLayoutButtonsDisplayed', 'TEXT'],
   ['urn:SearchLayoutFieldsDisplayed', 'TEXT'],
-])
+]);

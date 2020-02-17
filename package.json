@@ -8,7 +8,8 @@
     "docker": "docker-compose run app",
     "init": "node build/index.js init",
     "exec": "node build/index.js exec",
-    "test": "mocha --require ts-node/register test/*.test.ts test/**/*.test.ts"
+    "test": "mocha --require ts-node/register test/*.test.ts test/**/*.test.ts",
+    "lint": "tslint -c tslint.json src/**/*.ts test/**/*.ts"
   },
   "repository": {
     "type": "git",
@@ -26,29 +27,30 @@
   "homepage": "https://github.com/Hayden-Yu/Forcegres#readme",
   "dependencies": {
     "@types/dotenv": "^6.1.1",
-    "@types/jsforce": "^1.9.10",
+    "@types/jsforce": "^1.9.13",
     "@types/moment-timezone": "^0.5.12",
-    "@types/pg": "^7.11.2",
-    "@types/request": "^2.48.3",
+    "@types/pg": "^7.14.1",
+    "@types/request": "^2.48.4",
     "@types/winston": "^2.4.4",
     "dotenv": "^8.2.0",
     "moment-timezone": "^0.5.27",
-    "pg": "^7.12.1",
+    "pg": "^7.17.0",
     "request": "^2.88.0",
-    "typescript": "^3.6.4",
+    "typescript": "^3.7.4",
     "winston": "^3.2.1"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.3",
+    "@types/chai": "^4.2.7",
     "@types/chai-as-promised": "^7.1.2",
     "@types/mocha": "^5.2.7",
-    "@types/sinon": "^7.5.0",
+    "@types/nock": "^11.1.0",
+    "@types/sinon": "^7.5.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "codelyzer": "^5.1.2",
-    "mocha": "^6.2.1",
+    "mocha": "^6.2.2",
+    "nock": "^11.7.2",
     "sinon": "^7.5.0",
-    "ts-node": "^8.4.1",
-    "tslint": "^5.20.0"
+    "ts-node": "^8.5.4",
+    "tslint": "^5.20.1"
   }
 }

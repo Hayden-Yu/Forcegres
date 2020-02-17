@@ -17,8 +17,8 @@ export class ApiClient {
   private logger: Logger;
 
   constructor(
-    config: Config,
-    logger?: Logger
+    config: IConfig,
+    logger?: Logger,
   ) {
     this.clientId = config.clientId;
     this.clientSecret = config.clientSecret;
@@ -33,7 +33,7 @@ export class ApiClient {
     this.logger.info('authenticating salesforce');
     return new Promise((resolve, reject) => {
       request(`${this.loginUrl}services/oauth2/token`, {
-        method: 'POST', 
+        method: 'POST',
         body: querystring.stringify({
           'grant_type': 'password',
           'client_id': this.clientId,
@@ -41,19 +41,19 @@ export class ApiClient {
           'username': this.username,
           'password': this.password,
         }),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       }, (err, res) => {
         if (res && res.statusCode === 200) {
-          const dt = JSON.parse(res.body)
+          const dt = JSON.parse(res.body);
           this.accessToken = dt['access_token'];
           this.baseUrl = dt['instance_url'];
-          return resolve()
+          return resolve();
         }
         if (err || (res.statusCode !== 200)) {
           this.logger.error(err || res);
           return reject(err || res);
         }
-      })
+      });
     });
   }
 
@@ -71,23 +71,23 @@ export class ApiClient {
     } else {
       req.headers['Authorization'] = `Bearer ${this.accessToken}`;
     }
-    this.logger.silly(req)
+    this.logger.silly(req);
     return new Promise((resolve, reject) => {
       request(req, (err, res) => {
         if (err) {
-          console.log(err);
-          return reject(err)
+          this.logger.error(err);
+          return reject(err);
         }
         if (res.statusCode === 401 && !noAuth) {
-          return this.auth().then(() => this.request(req, true))
+          return this.auth().then(() => this.request(req, true));
         } else {
           if (res.headers['sforce-limit-info']) {
-            this._limitInfo = (<string> res.headers['sforce-limit-info']).replace('api-usage=', '');
+            this._limitInfo = (res.headers['sforce-limit-info'] as string).replace('api-usage=', '');
           }
-          this.logger.silly(res)
+          this.logger.silly(res);
           return resolve(res);
         }
-      })
+      });
     });
   }
 
@@ -96,12 +96,12 @@ export class ApiClient {
   }
 }
 
-export type Config = {
-  clientId: string,
-  clientSecret: string,
-  username: string,
-  password: string,
-  securityToken: string,
-  loginUrl?: string,
-  version?: string,
+export interface IConfig {
+  clientId: string;
+  clientSecret: string;
+  username: string;
+  password: string;
+  securityToken: string;
+  loginUrl?: string;
+  version?: string;
 }

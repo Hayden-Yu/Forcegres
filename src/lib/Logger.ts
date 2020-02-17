@@ -1,6 +1,7 @@
 // trimed logger definition from winston
+// tslint:disable: interface-name member-access
 
-export type Logger = {
+export interface Logger {
   error: LeveledLogMethod;
   warn: LeveledLogMethod;
   help: LeveledLogMethod;
