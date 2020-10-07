@@ -5,7 +5,7 @@ services:
     depends_on: 
       - postgres
     volumes: 
-      - .:/forcegres/
+#      - .:/forcegres/
       - /forcegres/node_modules
   postgres:
     image: postgres:latest
