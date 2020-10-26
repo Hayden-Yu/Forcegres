@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/Hayden-Yu/Forcegres.svg)](https://github.com/Hayden-Yu/Forcegres/releases)
 [![License](https://img.shields.io/github/license/Hayden-Yu/Forcegres)](https://github.com/Hayden-Yu/Forcegres/blob/master/LICENSE)
 
-Data syncronization from salesforce to postgreSQL db
+Data synchronization from Salesforce to PostgreSQL db.
 
 ## Usage
 
