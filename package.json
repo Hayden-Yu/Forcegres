@@ -33,7 +33,7 @@
     "@types/request": "^2.48.4",
     "@types/winston": "^2.4.4",
     "dotenv": "^8.2.0",
-    "moment-timezone": "^0.5.27",
+    "moment-timezone": "^0.5.35",
     "pg": "^7.17.0",
     "request": "^2.88.0",
     "typescript": "^3.7.4",
